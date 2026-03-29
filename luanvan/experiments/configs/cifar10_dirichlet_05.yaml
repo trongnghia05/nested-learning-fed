@@ -1,0 +1,33 @@
+# CIFAR-10 with Dirichlet Non-IID (alpha=0.5)
+# Main experiment configuration
+
+# Dataset
+dataset: cifar10
+num_classes: 10
+
+# FL Settings
+num_clients: 10
+num_rounds: 100
+local_epochs: 5
+batch_size: 32
+
+# Non-IID
+non_iid_type: dirichlet
+alpha: 0.5  # Moderate non-IID
+
+# Optimizer
+lr: 0.01
+
+# Fed-M3 specific
+fed_m3:
+  beta1: 0.9      # Fast momentum
+  beta2: 0.999    # Second moment
+  beta3: 0.9      # Slow momentum (server)
+  lam: 0.3        # Balance factor (local vs global)
+  ns_steps: 5     # Newton-Schulz iterations
+
+# Reproducibility
+seed: 42
+
+# Output
+save_dir: ./results
