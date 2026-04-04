@@ -10,6 +10,9 @@
 
 ## Muc luc Knowledge Base
 
+### 0. Reference Documents
+- `00_paper_algorithms_reference.md` - **CONG THUC GOC** - M3 va DGD theo paper chinh xac (de so sanh)
+
 ### 1. Nested Learning Fundamentals
 - `01_nested_learning/00_learning_path.md` - **BAT DAU TU DAY** - Lo trinh hoc
 - `01_nested_learning/01_core_concepts.md` - Khai niem co ban ve Nested Learning
@@ -20,6 +23,7 @@
 ### 2. Optimizers
 - `02_optimizers/01_delta_gradient_descent.md` - Delta Gradient Descent (DGD)
 - `02_optimizers/02_multi_scale_momentum_muon.md` - Multi-scale Momentum Muon (M3)
+- `02_optimizers/03_fedprox.md` - **FedProx** - Proximal term regularization (baseline)
 
 ### 3. Federated Learning (chua hoan thanh)
 - `03_federated_learning/01_basics.md` - FL co ban va FedAvg
@@ -116,6 +120,7 @@
 | Nested Learning | `01_core_concepts.md` | Multi-level optimization |
 | DGD | `01_delta_gradient_descent.md` | W = W*(I-xx^T) - eta*grad |
 | M3 | `02_multi_scale_momentum_muon.md` | Fast + Slow momentum |
+| FedProx | `03_fedprox.md` | W = W - lr*grad - lr*mu*(W-W_global) |
 | Fed-DGD | `01_fed_dgd.md` | DGD + FedAvg |
 | Fed-M3 | `02_fed_m3.md` | M3 + Hierarchical FL |
 

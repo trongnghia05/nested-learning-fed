@@ -47,7 +47,7 @@ Phat trien 2 phuong phap moi:
 
 ---
 
-## TIEN DO CAP NHAT (2026-03-30)
+## TIEN DO CAP NHAT (2026-04-01)
 
 ### Da hoan thanh
 - [x] Setup environment (CUDA, PyTorch)
@@ -64,12 +64,14 @@ Phat trien 2 phuong phap moi:
 
 ### Dang lam
 - [x] Fed-M3 Lite: **76.14% @ Round 10** (CIFAR-10, alpha=0.5)
-- [ ] So sanh Fed-M3 Lite vs FedAvg (can chay FedAvg)
-- [ ] Chay them rounds (50-100)
+- [x] **Implement Fed-DGD** (drift direction version)
+- [x] **Implement FedProx** (baseline for comparison)
+- [ ] Test Fed-DGD (drift direction)
+- [ ] Test FedProx
+- [ ] So sanh: FedAvg vs Fed-M3 vs Fed-DGD vs FedProx
 
 ### Chua lam
-- [ ] Implement Fed-DGD
-- [ ] Chay full experiments
+- [ ] Chay full experiments (50-100 rounds)
 - [ ] Ablation studies
 - [ ] Viet luan van
 
@@ -98,10 +100,12 @@ luanvan/experiments/
 │   ├── client.py               # FLClient
 │   ├── server.py               # FLServer
 │   └── aggregators.py          # fedavg_aggregate, weighted_aggregate
-├── optimizers/                 # Fed-M3, Fed-DGD
+├── optimizers/                 # Fed-M3, Fed-DGD, FedProx
 │   ├── __init__.py
 │   ├── newton_schulz.py        # Newton-Schulz orthogonalization
-│   └── fed_m3.py               # FedM3Optimizer, fed_m3_aggregate
+│   ├── fed_m3.py               # FedM3LiteOptimizer, fed_m3_aggregate
+│   ├── fed_dgd.py              # FedDGDOptimizer, fed_dgd_aggregate
+│   └── fedprox.py              # FedProxOptimizer, fedprox_aggregate
 ├── utils/                      # Utilities
 │   ├── __init__.py
 │   ├── seed.py                 # set_seed()
@@ -137,8 +141,14 @@ python run_experiment.py --method fedavg --dataset cifar10 --alpha 0.5 --num-rou
 # Chay Fed-M3 tren CIFAR-10
 python run_experiment.py --method fed_m3 --dataset cifar10 --alpha 0.5 --num-rounds 100
 
-# So sanh FedAvg vs Fed-M3 (CUNG data split)
-python run_comparison.py --dataset cifar10 --methods fedavg fed_m3 --alpha 0.5
+# Chay Fed-DGD tren CIFAR-10
+python run_experiment.py --method fed_dgd --dataset cifar10 --alpha 0.5 --num-rounds 100
+
+# Chay FedProx tren CIFAR-10
+python run_experiment.py --method fedprox --dataset cifar10 --alpha 0.5 --fedprox-mu 0.01 --num-rounds 100
+
+# So sanh tat ca methods (CUNG data split)
+python run_comparison.py --dataset cifar10 --methods fedavg fed_m3 fed_dgd fedprox --alpha 0.5
 ```
 
 ### Fed-M3 Lite Implementation Notes (HIEN TAI)
@@ -167,6 +177,66 @@ python run_comparison.py --dataset cifar10 --methods fedavg fed_m3 --alpha 0.5
 # - lr = 0.01     (learning rate)
 ```
 
+### Fed-DGD Implementation Notes (DRIFT DIRECTION)
+
+```python
+# Fed-DGD Core Idea:
+# Decay theo DRIFT direction de giam client drift trong FL
+#
+# Paper goc: W = W @ (I - k⊗k) - η * grad, k = input
+# FL version: k = drift direction = θ_local - θ_global
+
+# Client:
+#   drift = θ_current - θ_global
+#   k = normalize(drift)  # DRIFT direction (KHONG PHAI gradient!)
+#   θ = θ - lr*grad - lr*decay_strength*(k·θ)*k
+#            ↑              ↑
+#        gradient     decay theo DRIFT
+#        step         (keo ve phia global)
+
+# Server:
+#   theta_global = FedAvg(theta_i)
+#   k_global = average(k_i)  # aggregated drift direction
+
+# Key hyperparameters:
+# - dgd_alpha = 1.0       (uniform decay = TAT)
+# - decay_strength = 0.1  (drift decay strength)
+# - lr = 0.01
+
+# Lich su:
+# v1: k = gradient direction → SAI (tu pha minh)
+# v2: k = drift direction → DUNG (giam client drift)
+```
+
+### FedProx Implementation Notes (BASELINE)
+
+```python
+# FedProx Core Idea:
+# Add proximal term to penalize drift from global model
+# Paper: "Federated Optimization in Heterogeneous Networks" (Li et al., 2020)
+#
+# Local objective:
+#   min_θ L(θ; D_local) + (μ/2) * ||θ - θ_global||²
+
+# Client:
+#   θ = θ - lr*grad - lr*μ*(θ - θ_global)
+#            ↑              ↑
+#        gradient     proximal term
+#        step         (linear penalty)
+
+# Server:
+#   theta_global = FedAvg(theta_i)  # Same as FedAvg
+
+# Key hyperparameters:
+# - mu = 0.01   (proximal term coefficient)
+# - lr = 0.01
+
+# So sanh voi Fed-DGD (drift direction):
+# - FedProx: Linear penalty μ*(θ - θ_global)
+# - Fed-DGD: Projection decay (k·θ)*k, k = drift direction
+# - FedProx don gian hon, Fed-DGD co tinh "selective forgetting"
+```
+
 ---
 
 ## EXPERIMENT DESIGNS (DA HOAN THANH)
@@ -179,7 +249,10 @@ luanvan/knowledge/06_experiments/
 ├── 01_fed_m3_design.md         # Fed-M3 algorithm chi tiet
 ├── 02_fed_dgd_design.md        # Fed-DGD algorithm chi tiet
 ├── 03_experiment_setup.md      # Hardware, models, hyperparameters
-└── 04_non_iid_scenarios.md     # Label skew, Quantity skew
+├── 04_non_iid_scenarios.md     # Label skew, Quantity skew
+├── 05_fed_m3_approaches.md     # Fed-M3 cac huong tiep can
+├── 06_fed_dgd_approaches.md    # Fed-DGD cac huong tiep can
+└── 07_fedprox_design.md        # FedProx baseline (MOI)
 ```
 
 ### Fed-M3 Design Summary
@@ -348,4 +421,4 @@ pip install torch --index-url https://download.pytorch.org/whl/cu124
 
 ---
 
-*Cap nhat: 2026-03-30*
+*Cap nhat: 2026-04-01*

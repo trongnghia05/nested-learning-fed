@@ -4,6 +4,8 @@ Main script to run FL experiments.
 Usage:
     python run_experiment.py --method fedavg --dataset cifar10 --alpha 0.5
     python run_experiment.py --method fed_m3 --dataset cifar10 --alpha 0.5
+    python run_experiment.py --method fed_dgd --dataset cifar10 --alpha 0.5
+    python run_experiment.py --method fedprox --dataset cifar10 --alpha 0.5 --fedprox-mu 0.01
 """
 
 import argparse
@@ -27,6 +29,8 @@ from fl import FLClient, FLServer, dirichlet_split, quantity_skew_split, iid_spl
 from fl.data_split import print_data_distribution
 from fl.aggregators import fedavg_aggregate
 from optimizers import fed_m3_optimizer_fn, fed_m3_aggregate
+from optimizers import fed_dgd_optimizer_fn, fed_dgd_aggregate
+from optimizers import fedprox_optimizer_fn, fedprox_aggregate
 from utils import set_seed, MetricsTracker
 
 
@@ -132,6 +136,11 @@ def run_fl_experiment(
     lam: float = 0.3,
     ns_steps: int = 5,
     v_init: float = 1.0,
+    # Fed-DGD specific
+    dgd_alpha: float = 1.0,  # No uniform decay (only directional decay)
+    dgd_decay_strength: float = 0.1,
+    # FedProx specific
+    fedprox_mu: float = 0.01,
     # Debug mode
     debug: bool = False,
 ) -> Dict[str, Any]:
@@ -139,7 +148,7 @@ def run_fl_experiment(
     Run a complete FL experiment.
 
     Args:
-        method: 'fedavg' or 'fed_m3'
+        method: 'fedavg', 'fed_m3', or 'fed_dgd'
         dataset_name: 'cifar10' or 'fmnist'
         num_clients: Number of FL clients
         num_rounds: Number of communication rounds
@@ -220,6 +229,30 @@ def run_fl_experiment(
                 global_model, client_results, server_state,
                 beta3=beta3, ns_steps=ns_steps
             )
+    elif method == 'fed_dgd':
+        def optimizer_fn(model, lr, extra_state):
+            return fed_dgd_optimizer_fn(
+                model, lr, extra_state,
+                alpha=dgd_alpha,
+                decay_strength=dgd_decay_strength,
+                debug=debug
+            )
+        def aggregator_fn(global_model, client_results, server_state):
+            return fed_dgd_aggregate(
+                global_model, client_results, server_state,
+                alpha_global=dgd_alpha
+            )
+    elif method == 'fedprox':
+        def optimizer_fn(model, lr, extra_state):
+            return fedprox_optimizer_fn(
+                model, lr, extra_state,
+                mu=fedprox_mu,
+                debug=debug
+            )
+        def aggregator_fn(global_model, client_results, server_state):
+            return fedprox_aggregate(
+                global_model, client_results, server_state
+            )
     else:
         raise ValueError(f"Unknown method: {method}")
 
@@ -234,17 +267,29 @@ def run_fl_experiment(
     if debug:
         print(f"DEBUG MODE: ON")
         if method == 'fed_m3':
-            print(f"Fed-M3 params: beta1={beta1}, beta2={beta2}, beta3={beta3}, lam={lam}, ns_steps={ns_steps}, v_init={v_init}")
+            print(f"Fed-M3 params: beta1={beta1}, beta3={beta3}, lam={lam}")
+        if method == 'fed_dgd':
+            print(f"Fed-DGD params: alpha={dgd_alpha}, decay_strength={dgd_decay_strength}")
+        if method == 'fedprox':
+            print(f"FedProx params: mu={fedprox_mu}")
     print(f"{'='*70}\n")
 
     for round_num in tqdm(range(1, num_rounds + 1), desc="FL Rounds", disable=debug):
         # Get global parameters
         global_params = server.get_global_params()
 
-        # Get extra state for Fed-M3 (global direction)
+        # Get extra state for Fed-M3 (global momentum)
         extra_state = {}
         if method == 'fed_m3' and 'global_momentum' in server.server_state:
             extra_state['global_momentum'] = server.server_state['global_momentum']
+
+        # Get extra state for Fed-DGD (global params for drift computation)
+        if method == 'fed_dgd':
+            extra_state['global_params'] = global_params
+
+        # Get extra state for FedProx (global params for proximal term)
+        if method == 'fedprox':
+            extra_state['global_params'] = global_params
 
         # Client training
         client_results = []
@@ -334,6 +379,14 @@ def run_fl_experiment(
                 for key in list(gd.keys())[:2]:
                     gd_tensor = gd[key]
                     print(f"      {key}: norm={torch.norm(gd_tensor).item():.4f}")
+
+            # Fed-DGD specific debug
+            if method == 'fed_dgd' and 'drift_direction' in agg_result:
+                gd = agg_result['drift_direction']
+                print(f"    Global drift direction (k) keys: {len(gd)}")
+                for key in list(gd.keys())[:2]:
+                    k_tensor = gd[key]
+                    print(f"      {key}: norm={torch.norm(k_tensor).item():.4f}")
 
         # Evaluate GLOBAL model on TEST data
         eval_result = server.evaluate()
@@ -438,7 +491,7 @@ def run_fl_experiment(
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Run FL Experiment (FedAvg or Fed-M3)',
+        description='Run FL Experiment (FedAvg, Fed-M3, Fed-DGD, or FedProx)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -447,6 +500,12 @@ Examples:
 
   # Fed-M3 on CIFAR-10 with severe non-IID
   python run_experiment.py --method fed_m3 --dataset cifar10 --alpha 0.1
+
+  # Fed-DGD on CIFAR-10
+  python run_experiment.py --method fed_dgd --dataset cifar10 --alpha 0.5
+
+  # FedProx on CIFAR-10
+  python run_experiment.py --method fedprox --dataset cifar10 --alpha 0.5 --fedprox-mu 0.01
 
   # Quick test (few rounds)
   python run_experiment.py --method fedavg --num-rounds 10 --local-epochs 1
@@ -462,13 +521,19 @@ Fed-M3 Lambda values:
   0.3 = Default (70% local + 30% global)
   0.5 = Balanced
   1.0 = Prefer global direction
+
+FedProx Mu values:
+  0.001 = Weak regularization
+  0.01  = Default
+  0.1   = Strong regularization
+  1.0   = Very strong (may hurt convergence)
         """
     )
 
     # Method and dataset
     parser.add_argument('--method', type=str, default='fedavg',
-                       choices=['fedavg', 'fed_m3'],
-                       help='FL method: fedavg or fed_m3 (default: fedavg)')
+                       choices=['fedavg', 'fed_m3', 'fed_dgd', 'fedprox'],
+                       help='FL method: fedavg, fed_m3, fed_dgd, or fedprox (default: fedavg)')
     parser.add_argument('--dataset', type=str, default='cifar10',
                        choices=['cifar10', 'fmnist'],
                        help='Dataset: cifar10 or fmnist (default: cifar10)')
@@ -506,6 +571,16 @@ Fed-M3 Lambda values:
     parser.add_argument('--v-init', type=float, default=1.0,
                        help='Fed-M3: initial value for v (default: 1.0, prevents explosion)')
 
+    # Fed-DGD settings
+    parser.add_argument('--dgd-alpha', type=float, default=1.0,
+                       help='Fed-DGD: uniform decay factor (default: 1.0 = no uniform decay)')
+    parser.add_argument('--dgd-decay-strength', type=float, default=0.1,
+                       help='Fed-DGD: directional decay strength (default: 0.1)')
+
+    # FedProx settings
+    parser.add_argument('--fedprox-mu', type=float, default=0.01,
+                       help='FedProx: proximal term coefficient mu (default: 0.01)')
+
     # Other
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed for reproducibility (default: 42)')
@@ -538,6 +613,9 @@ Fed-M3 Lambda values:
         lam=args.lam,
         ns_steps=args.ns_steps,
         v_init=args.v_init,
+        dgd_alpha=args.dgd_alpha,
+        dgd_decay_strength=args.dgd_decay_strength,
+        fedprox_mu=args.fedprox_mu,
         debug=args.debug,
     )
 
