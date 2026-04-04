@@ -1,5 +1,24 @@
 # Multi-scale Momentum Muon (M3)
 
+---
+
+# MUC LUC
+
+1. [Tong quan](#1-tong-quan)
+2. [Muon Optimizer - Nen tang](#2-muon-optimizer---nen-tang)
+3. [Multi-scale Momentum](#3-multi-scale-momentum)
+4. [Cong thuc M3 chi tiet](#4-cong-thuc-m3-chi-tiet)
+5. [Tai sao M3 phu hop voi FL?](#5-tai-sao-m3-phu-hop-voi-fl)
+6. [Thiet ke Fed-M3](#6-thiet-ke-fed-m3)
+7. [Implementation Notes](#7-implementation-notes)
+8. [So sanh voi cac optimizer khac](#8-so-sanh-voi-cac-optimizer-khac)
+9. [Cau hoi nghien cuu cho luan van](#9-cau-hoi-nghien-cuu-cho-luan-van)
+10. [Pseudo-code M3 cho FL](#10-pseudo-code-m3-cho-fl)
+11. [Key insights cho luan van](#11-key-insights-cho-luan-van)
+12. **[SO SANH FED-M3 LITE VS M3 PAPER](#12-so-sanh-fed-m3-lite-vs-m3-paper)** ← MOI
+
+---
+
 ## 1. Tong quan
 
 **M3 (Multi-scale Momentum Muon)** la optimizer duoc gioi thieu trong Nested Learning paper, ket hop:
@@ -293,3 +312,224 @@ class FedM3Client:
 
 3. **Natural fit for FL hierarchy**
    - Client-server architecture map truc tiep voi fast-slow momentum
+
+---
+
+## 12. SO SANH FED-M3 LITE VS M3 PAPER
+
+> **Muc dich:** Xac dinh Fed-M3 Lite (implementation hien tai) khac M3 Paper (Algorithm 1) o dau.
+
+### 12.1 Tong quan khac biet
+
+| Component | M3 Paper (Algorithm 1) | Fed-M3 Lite (Implementation) | Khac biet |
+|-----------|------------------------|------------------------------|-----------|
+| **Momentum style** | ACCUMULATION | EMA | ⚠️ **KHAC** |
+| **Newton-Schulz** | CO | KHONG | ⚠️ **KHAC** |
+| **Second moment (V)** | CO | KHONG | ⚠️ **KHAC** |
+| **Multi-scale** | CO (fast + slow) | CO (fast + slow) | ✅ GIONG |
+| **Normalization** | Newton-Schulz | Simple norm (÷ ||m2|| × 0.1) | ⚠️ **KHAC** |
+
+---
+
+### 12.2 Fast Momentum (M1 / m1)
+
+#### M3 Paper:
+```
+M₁ = M₁ + β₁ · g        (ACCUMULATION - unbounded)
+O₁ = Newton-Schulz(M₁)   (Orthogonalize)
+```
+
+#### Fed-M3 Lite:
+```python
+# fed_m3.py, line 120
+m1.mul_(beta1).add_(grad)
+# => m1 = β1·m1 + g        (EMA - bounded)
+# KHONG co Newton-Schulz
+```
+
+#### Phan tich:
+| | Paper | Fed-M3 Lite |
+|-|-------|-------------|
+| **Formula** | M = M + β·g | m = β·m + g |
+| **Style** | Accumulation | EMA |
+| **Bounded?** | KHONG (tang vo han) | CO |
+| **Ly do khac** | Paper co NS de normalize | EMA tu bounded, khong can NS |
+
+---
+
+### 12.3 Slow Momentum (M2 / m2)
+
+#### M3 Paper:
+```
+M₂ = M₂ + β₃ · Σᵢ gᵢ     (ACCUMULATION - unbounded)
+O₂ = Newton-Schulz(M₂)    (Orthogonalize, moi f steps)
+```
+
+#### Fed-M3 Lite:
+```python
+# fed_m3.py, line 294
+m2[key].mul_(beta3).add_(buffer)
+# => m2 = β3·m2 + buffer   (EMA - bounded)
+
+# Line 303: Simple normalization
+global_momentum[key] = momentum / norm * 0.1
+```
+
+#### Phan tich:
+| | Paper | Fed-M3 Lite |
+|-|-------|-------------|
+| **Formula** | M2 = M2 + β3·Σg | m2 = β3·m2 + buffer |
+| **Normalization** | Newton-Schulz | Simple: m2/||m2||×0.1 |
+| **Update frequency** | Moi f steps | Moi round |
+
+---
+
+### 12.4 Second Moment (V)
+
+#### M3 Paper:
+```
+V = V + β₂ · g²
+denom = √V + ε
+update = (O₁ + α·O₂) / denom     (Adaptive scaling)
+```
+
+#### Fed-M3 Lite:
+```python
+# KHONG CO second moment
+update = m1 + lam * m2           (No adaptive scaling)
+```
+
+#### Phan tich:
+| | Paper | Fed-M3 Lite |
+|-|-------|-------------|
+| **Second moment** | CO (like Adam) | KHONG |
+| **Adaptive scaling** | CO (/ √V) | KHONG |
+| **Ly do bo** | Giam complexity cho FL |
+
+---
+
+### 12.5 Newton-Schulz Orthogonalization
+
+#### M3 Paper:
+```
+O₁ = Newton-Schulz_T(M₁)
+O₂ = Newton-Schulz_T(M₂)
+
+# Newton-Schulz iteration (T steps):
+X₀ = M / ||M||
+X_{k+1} = 0.5 · X_k · (3I - X_k^T · X_k)
+```
+
+#### Fed-M3 Lite:
+```
+KHONG CO Newton-Schulz
+```
+
+#### Ly do bo Newton-Schulz trong Fed-M3:
+1. **NS output fixed magnitude (~2-3)** → Mat thong tin gradient size
+2. **Clients contribute equally** → Khong tot cho weighted FedAvg
+3. **Multi-scale momentum la key insight**, khong phai NS
+4. **Computational cost** → NS la O(n²) per step
+
+---
+
+### 12.6 Update Rule
+
+#### M3 Paper:
+```
+Θ = Θ - η · (O₁ + α·O₂) / (√V + ε)
+       ↑     ↑      ↑        ↑
+      lr    NS(M1) NS(M2)  second moment
+```
+
+#### Fed-M3 Lite:
+```python
+# Client: fed_m3.py, line 134, 137
+update = m1 + lam * m2
+p.data.add_(update, alpha=-lr)
+# => Θ = Θ - lr · (m1 + λ·m2)
+```
+
+#### So sanh:
+| | Paper | Fed-M3 Lite |
+|-|-------|-------------|
+| **Fast component** | O₁ = NS(M₁) | m1 (EMA, no NS) |
+| **Slow component** | α·O₂ = α·NS(M₂) | λ·m2 (normalized) |
+| **Denominator** | √V + ε | 1 (no scaling) |
+| **Balance param** | α | λ (lam) |
+
+---
+
+### 12.7 Bang Tong Hop
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    M3 PAPER vs FED-M3 LITE                                  │
+├─────────────────────┬───────────────────────┬───────────────────────────────┤
+│ Component           │ M3 Paper              │ Fed-M3 Lite                   │
+├─────────────────────┼───────────────────────┼───────────────────────────────┤
+│ Fast momentum       │ M1 = M1 + β1·g        │ m1 = β1·m1 + g                │
+│                     │ (Accumulation)        │ (EMA)                         │
+├─────────────────────┼───────────────────────┼───────────────────────────────┤
+│ Slow momentum       │ M2 = M2 + β3·Σg       │ m2 = β3·m2 + buffer           │
+│                     │ (Accumulation)        │ (EMA)                         │
+├─────────────────────┼───────────────────────┼───────────────────────────────┤
+│ Second moment       │ V = V + β2·g²         │ KHONG CO                      │
+├─────────────────────┼───────────────────────┼───────────────────────────────┤
+│ Newton-Schulz       │ CO (T steps)          │ KHONG CO                      │
+├─────────────────────┼───────────────────────┼───────────────────────────────┤
+│ Normalization       │ NS orthogonalize      │ m2/||m2||×0.1                 │
+├─────────────────────┼───────────────────────┼───────────────────────────────┤
+│ Update              │ Θ - η(O1+αO2)/√V      │ Θ - lr(m1+λm2)                │
+└─────────────────────┴───────────────────────┴───────────────────────────────┘
+```
+
+---
+
+### 12.8 Ket luan
+
+#### Fed-M3 Lite GIU LAI tu Paper:
+1. ✅ **Multi-scale momentum** (fast + slow)
+2. ✅ **Hierarchical structure** (client fast, server slow)
+3. ✅ **Long-term memory** (slow momentum qua rounds)
+
+#### Fed-M3 Lite BO/THAY DOI:
+1. ❌ **Newton-Schulz** → Bo (fixed magnitude khong tot cho FL)
+2. ❌ **Second moment V** → Bo (giam complexity)
+3. ⚠️ **Accumulation → EMA** → Thay doi (EMA bounded, on dinh hon)
+4. ⚠️ **NS normalization → Simple norm** → Thay doi (m2/||m2||×0.1)
+
+#### Ly do thay doi:
+```
+1. Newton-Schulz output fixed magnitude (~2-3)
+   → Mat thong tin gradient size
+   → Khong tot cho weighted FedAvg
+
+2. Accumulation khong bounded
+   → M tang vo han neu khong co NS
+   → EMA tu bounded, on dinh
+
+3. Multi-scale momentum la CORE INSIGHT
+   → Fast (local) + Slow (global) = FL hierarchy
+   → Newton-Schulz la "nice to have", khong phai core
+```
+
+---
+
+### 12.9 Cau hoi mo rong
+
+1. **Co nen them lai Newton-Schulz?**
+   - Thu: Apply NS sau EMA (bounded input)
+   - Kiem tra: NS co giup giam client conflict?
+
+2. **Co nen them second moment?**
+   - Thu: v = β2·v + g² (Adam style)
+   - Kiem tra: Adaptive scaling co giup FL?
+
+3. **EMA vs Accumulation?**
+   - Paper dung Accumulation vi co NS normalize
+   - Neu bo NS, EMA tot hon (bounded)
+
+---
+
+*Cap nhat: 2026-04-04*
