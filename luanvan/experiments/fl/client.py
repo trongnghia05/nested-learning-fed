@@ -108,11 +108,16 @@ class FLClient:
 
         criterion = nn.CrossEntropyLoss()
 
-        # Training loop
+        # Training loop with per-epoch tracking
+        epoch_metrics = []  # Track per-epoch metrics
         total_loss = 0.0
         total_samples = 0
 
         for epoch in range(local_epochs):
+            epoch_loss = 0.0
+            epoch_correct = 0
+            epoch_samples = 0
+
             for batch_x, batch_y in self.train_loader:
                 batch_x = batch_x.to(self.device)
                 batch_y = batch_y.to(self.device)
@@ -123,15 +128,33 @@ class FLClient:
                 loss.backward()
                 optimizer.step()
 
-                total_loss += loss.item() * batch_x.size(0)
-                total_samples += batch_x.size(0)
+                batch_size = batch_x.size(0)
+                epoch_loss += loss.item() * batch_size
+                _, predicted = outputs.max(1)
+                epoch_correct += predicted.eq(batch_y).sum().item()
+                epoch_samples += batch_size
 
-        avg_loss = total_loss / total_samples if total_samples > 0 else 0.0
+            # Record this epoch's metrics (during training)
+            epoch_avg_loss = epoch_loss / epoch_samples if epoch_samples > 0 else 0.0
+            epoch_avg_acc = epoch_correct / epoch_samples if epoch_samples > 0 else 0.0
+            epoch_metrics.append({
+                'epoch': epoch + 1,
+                'loss': epoch_avg_loss,
+                'acc': epoch_avg_acc,
+            })
+
+            # Accumulate for overall average
+            total_loss += epoch_loss
+            total_samples += epoch_samples
+
+        # train_loss = average loss DURING training (across all epochs)
+        avg_train_loss = total_loss / total_samples if total_samples > 0 else 0.0
 
         return {
             'params': self.get_model_params(),
             'num_samples': self.get_num_samples(),
-            'train_loss': avg_loss,
+            'train_loss': avg_train_loss,
+            'epoch_metrics': epoch_metrics,
             'extra': extra_data,
         }
 

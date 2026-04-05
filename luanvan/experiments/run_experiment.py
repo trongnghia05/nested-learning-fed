@@ -325,11 +325,12 @@ def run_fl_experiment(
                                       f"m1={stat['m1_norm']:.4f}, m2={stat['m2_norm']:.4f}, "
                                       f"update={stat['update_norm']:.4f}")
 
-        # Evaluate each client on their LOCAL data (before aggregation)
-        client_local_accs = []
+        # Evaluate each client on their LOCAL data (after ALL training, before aggregation)
+        # This gives "Local Acc" = local model accuracy on local data
+        client_train_accs = []
         for client in clients:
             client_eval = client.evaluate()
-            client_local_accs.append(client_eval['accuracy'])
+            client_train_accs.append(client_eval['accuracy'])
 
         # Server aggregation
         agg_result = server.aggregate(client_results, aggregator_fn)
@@ -393,21 +394,36 @@ def run_fl_experiment(
 
         # Evaluate each client with GLOBAL model on their local data
         # (This shows how well global model works for each client)
-        client_global_accs = []
+        client_global_evals = []
         global_state = server.get_global_params()
         for client in clients:
             client.set_model_params(global_state)
             client_eval = client.evaluate()
-            client_global_accs.append(client_eval['accuracy'])
+            client_global_evals.append(client_eval)
 
-        # Log metrics (including per-client)
+        # Build per-client details (including per-epoch metrics)
+        client_metrics = []
+        for i, result in enumerate(client_results):
+            client_metrics.append({
+                'client_id': i,
+                'num_samples': result['num_samples'],
+                'train_loss': result['train_loss'],
+                'train_acc': client_train_accs[i],  # Local Acc (evaluated after ALL training)
+                'test_acc': client_global_evals[i]['accuracy'],  # Global Acc
+                'test_loss': client_global_evals[i]['loss'],
+                'epoch_metrics': result.get('epoch_metrics', []),
+            })
+
+        # Log metrics with new structured format
         metrics.log(
             round_num=round_num,
-            train_loss=agg_result['train_loss'],
-            test_acc=eval_result['accuracy'],
-            test_loss=eval_result['loss'],
-            client_accs=client_global_accs,  # Per-client accuracy with global model
+            server_test_acc=eval_result['accuracy'],
+            server_test_loss=eval_result['loss'],
+            clients=client_metrics,
         )
+
+        # For backward compatibility in print statements
+        client_global_accs = [c['test_acc'] for c in client_metrics]
 
         # Print progress every 10 rounds (or first round, or every round in debug mode)
         if round_num % 10 == 0 or round_num == 1 or debug:
@@ -421,13 +437,13 @@ def run_fl_experiment(
                   f"Avg Train Loss: {agg_result['train_loss']:.4f}")
 
             # Per-client metrics
-            print(f"\n  Per-Client Results (with global model on local data):")
+            print(f"\n  Per-Client Results:")
             print(f"  {'Client':<8} {'Samples':<10} {'Train Loss':<12} {'Local Acc':<12} {'Global Acc':<12}")
-            print(f"  {'-'*54}")
+            print(f"  {'-'*66}")
             for i in range(num_clients):
                 print(f"  {i:<8} {client_results[i]['num_samples']:<10} "
                       f"{client_train_losses[i]:<12.4f} "
-                      f"{client_local_accs[i]*100:<12.2f} "
+                      f"{client_train_accs[i]*100:<12.2f} "
                       f"{client_global_accs[i]*100:<12.2f}")
 
             # Summary statistics
@@ -465,16 +481,39 @@ def run_fl_experiment(
     print(f"Convergence to 50%:          Round {metrics.get_convergence_round(0.5)}")
     print(f"Convergence to 60%:          Round {metrics.get_convergence_round(0.6)}")
 
-    # Final per-client statistics
-    if metrics.history['client_accs'] and metrics.history['client_accs'][-1]:
-        final_client_accs = metrics.history['client_accs'][-1]
+    # Final per-client table
+    if metrics.rounds:
+        final_round = metrics.rounds[-1]
+        final_clients = final_round['clients']
+        final_agg = final_round['client_aggregated']
+
         print(f"{'─'*70}")
-        print("Final Per-Client Accuracy (global model on local data):")
-        print(f"  Mean:   {np.mean(final_client_accs)*100:.2f}%")
-        print(f"  Std:    {np.std(final_client_accs)*100:.2f}%")
-        print(f"  Min:    {min(final_client_accs)*100:.2f}%")
-        print(f"  Max:    {max(final_client_accs)*100:.2f}%")
-        print(f"  Range:  {(max(final_client_accs)-min(final_client_accs))*100:.2f}%")
+        print(f"FINAL RESULTS (Round {final_round['round']}):")
+        print(f"{'─'*70}")
+
+        # Server metrics
+        print(f"\n  Server:")
+        print(f"    Test Acc:  {final_round['server']['test_acc']*100:.2f}%")
+        print(f"    Test Loss: {final_round['server']['test_loss']:.4f}")
+
+        # Per-client table
+        print(f"\n  Per-Client Results:")
+        print(f"  {'Client':<8} {'Samples':<10} {'Train Loss':<12} {'Local Acc':<12} {'Global Acc':<12}")
+        print(f"  {'-'*66}")
+        for c in final_clients:
+            print(f"  {c['client_id']:<8} {c['num_samples']:<10} "
+                  f"{c['train_loss']:<12.4f} "
+                  f"{c['train_acc']*100:<12.2f} "
+                  f"{c['test_acc']*100:<12.2f}")
+
+        # Aggregated statistics
+        print(f"\n  Client Aggregated:")
+        print(f"    {'Metric':<12} {'Mean':<12} {'Median':<12}")
+        print(f"    {'-'*36}")
+        print(f"    {'Train Acc':<12} {final_agg['train_acc']['mean']*100:<12.2f} {final_agg['train_acc']['median']*100:<12.2f}")
+        print(f"    {'Train Loss':<12} {final_agg['train_loss']['mean']:<12.4f} {final_agg['train_loss']['median']:<12.4f}")
+        print(f"    {'Test Acc':<12} {final_agg['test_acc']['mean']*100:<12.2f} {final_agg['test_acc']['median']*100:<12.2f}")
+        print(f"    {'Test Loss':<12} {final_agg['test_loss']['mean']:<12.4f} {final_agg['test_loss']['median']:<12.4f}")
 
     print(f"{'='*70}\n")
 

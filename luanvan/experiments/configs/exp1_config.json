@@ -1,0 +1,58 @@
+{
+  "experiment": {
+    "name": "exp1_global_accuracy",
+    "description": "So sanh Global Accuracy giua cac methods voi cac muc non-IID",
+    "version": "1.0"
+  },
+
+  "methods": ["fedavg", "fed_m3"],
+
+  "alphas": [0.5],
+
+  "dataset": {
+    "name": "cifar10",
+    "num_classes": 10
+  },
+
+  "fl": {
+    "num_clients": 5,
+    "num_rounds": 10,
+    "local_epochs": 5,
+    "batch_size": 64,
+    "lr": 0.01,
+    "non_iid_type": "dirichlet"
+  },
+
+  "model": {
+    "type": "auto"
+  },
+
+  "fed_m3": {
+    "beta1": 0.9,
+    "beta2": 0.999,
+    "beta3": 0.9,
+    "lam": 0.3,
+    "ns_steps": 5,
+    "v_init": 1.0
+  },
+
+  "fed_dgd": {
+    "alpha": 1.0,
+    "decay_strength": 0.1
+  },
+
+  "fedprox": {
+    "mu": 0.01
+  },
+
+  "training": {
+    "seed": 42,
+    "device": "auto",
+    "debug": false
+  },
+
+  "output": {
+    "save_dir": "./results/exp1_global_accuracy",
+    "save_config": true
+  }
+}
