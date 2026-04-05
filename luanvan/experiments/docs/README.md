@@ -293,7 +293,7 @@ python run_experiment.py --method fed_m3 --fed-m3-lam 0.0
       // Thong ke tong hop tu tat ca clients trong round nay
       "client_aggregated": {
         "train_acc": {
-          "mean": 0.55,    // Weighted mean (theo num_samples)
+          "mean": 0.55,    // Simple mean (khong trong so)
           "median": 0.53   // Median (khong trong so)
         },
         "train_loss": {"mean": 0.85, "median": 0.82},
@@ -339,7 +339,7 @@ Global Acc (test_acc):
 #### Aggregated metrics
 | Metric | Mo ta |
 |--------|-------|
-| `mean` | Trung binh **co trong so** theo `num_samples` |
+| `mean` | Trung binh (khong trong so) |
 | `median` | Trung vi (khong trong so) |
 
 #### epoch_metrics chi tiet

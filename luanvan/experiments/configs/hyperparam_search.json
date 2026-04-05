@@ -1,0 +1,35 @@
+{
+  "experiment": {
+    "name": "hyperparam_search",
+    "description": "Grid search de tim bo tham so tot nhat cho moi method"
+  },
+
+  "base_config": {
+    "dataset": "cifar10",
+    "alpha": 0.5,
+    "num_clients": 10,
+    "num_rounds": 3,
+    "local_epochs": 5,
+    "batch_size": 64,
+    "lr": 0.01,
+    "seed": 42
+  },
+
+  "grid": {
+    "fed_m3": {
+      "beta1": [0.9, 0.5, 0.2],
+      "beta3": [0.9],
+      "lam": [0.1]
+    },
+    "fed_dgd": {
+      "decay_strength": [0.05, 0.1, 0.2]
+    },
+    "fedprox": {
+      "mu": [0.001, 0.01, 0.1]
+    }
+  },
+
+  "output": {
+    "save_dir": "./results/hyperparam_search"
+  }
+}

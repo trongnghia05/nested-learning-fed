@@ -59,21 +59,19 @@ class MetricsTracker:
                 'test_loss': {'mean': 0.0, 'median': 0.0},
             }
 
-        # Extract values and weights
+        # Extract values
         train_accs = [c['train_acc'] for c in clients]
         train_losses = [c['train_loss'] for c in clients]
         test_accs = [c['test_acc'] for c in clients]
         test_losses = [c['test_loss'] for c in clients]
-        weights = [c['num_samples'] for c in clients]
-        total_samples = sum(weights)
 
-        # Weighted mean
-        def weighted_mean(values, weights, total):
-            if total == 0:
+        # Simple mean (no weights)
+        def mean(values):
+            if not values:
                 return 0.0
-            return sum(v * w for v, w in zip(values, weights)) / total
+            return float(np.mean(values))
 
-        # Median (unweighted)
+        # Median (no weights)
         def median(values):
             if not values:
                 return 0.0
@@ -81,19 +79,19 @@ class MetricsTracker:
 
         return {
             'train_acc': {
-                'mean': weighted_mean(train_accs, weights, total_samples),
+                'mean': mean(train_accs),
                 'median': median(train_accs),
             },
             'train_loss': {
-                'mean': weighted_mean(train_losses, weights, total_samples),
+                'mean': mean(train_losses),
                 'median': median(train_losses),
             },
             'test_acc': {
-                'mean': weighted_mean(test_accs, weights, total_samples),
+                'mean': mean(test_accs),
                 'median': median(test_accs),
             },
             'test_loss': {
-                'mean': weighted_mean(test_losses, weights, total_samples),
+                'mean': mean(test_losses),
                 'median': median(test_losses),
             },
         }

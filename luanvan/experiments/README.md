@@ -1,6 +1,20 @@
 # FL Experiments - Hướng dẫn sử dụng
 
-> Documentation cho Fed-M3 và FedAvg experiments.
+> Documentation cho Fed-M3, Fed-DGD, FedProx và FedAvg experiments.
+
+---
+
+## Mục lục
+
+1. [Data Split Strategy](#data-split-strategy)
+2. [Cách chạy nhanh](#cách-chạy-nhanh)
+3. [run_experiment.py - Tham số chi tiết](#run_experimentpy---tham-số-chi-tiết)
+4. [run_comparison.py - Tham số chi tiết](#run_comparisonpy---tham-số-chi-tiết)
+5. [exp1_global_accuracy.py - So sánh Global Accuracy](#exp1_global_accuracypy---so-sánh-global-accuracy)
+6. [hyperparam_search.py - Hyperparameter Grid Search](#hyperparam_searchpy---hyperparameter-grid-search)
+7. [Experiment Matrix (Recommended)](#experiment-matrix-recommended)
+8. [Troubleshooting](#troubleshooting)
+9. [Files quan trọng](#files-quan-trọng)
 
 ---
 
@@ -74,25 +88,20 @@ python run_experiment.py [OPTIONS]
 
 | Tham số | Kiểu | Mặc định | Mô tả |
 |---------|------|----------|-------|
-| **Method & Dataset** |
-| `--method` | str | `fedavg` | Phương pháp FL: `fedavg` hoặc `fed_m3` |
+| `--method` | str | `fedavg` | Phương pháp FL: `fedavg`, `fed_m3`, `fed_dgd`, `fedprox` |
 | `--dataset` | str | `cifar10` | Dataset: `cifar10` hoặc `fmnist` |
-| **FL Settings** |
 | `--num-clients` | int | `10` | Số lượng clients trong FL |
 | `--num-rounds` | int | `100` | Số communication rounds |
 | `--local-epochs` | int | `5` | Số epochs train local mỗi round |
 | `--batch-size` | int | `32` | Batch size cho local training |
 | `--lr` | float | `0.01` | Learning rate |
-| **Non-IID Settings** |
 | `--non-iid` | str | `dirichlet` | Loại non-IID: `dirichlet`, `quantity`, `iid` |
 | `--alpha` | float | `0.5` | Dirichlet α (nhỏ = more non-IID) |
-| **Fed-M3 Specific** |
-| `--beta1` | float | `0.9` | Fast momentum coefficient |
-| `--beta2` | float | `0.999` | Second moment coefficient |
-| `--beta3` | float | `0.9` | Slow momentum coefficient (server) |
-| `--lam` | float | `0.3` | Balance factor (local vs global) |
-| `--ns-steps` | int | `5` | Newton-Schulz iterations |
-| **Other** |
+| `--beta1` | float | `0.9` | Fed-M3: Fast momentum coefficient |
+| `--beta2` | float | `0.999` | Fed-M3: Second moment coefficient |
+| `--beta3` | float | `0.9` | Fed-M3: Slow momentum coefficient (server) |
+| `--lam` | float | `0.3` | Fed-M3: Balance factor (local vs global) |
+| `--ns-steps` | int | `5` | Fed-M3: Newton-Schulz iterations |
 | `--seed` | int | `42` | Random seed cho reproducibility |
 | `--device` | str | `auto` | Device: `cuda`, `cpu`, hoặc `auto` |
 | `--save-dir` | str | `./results` | Thư mục lưu kết quả |
@@ -278,6 +287,176 @@ results/comparison/<dataset>_<non_iid>_a<alpha>_<timestamp>/
 
 ---
 
+## exp1_global_accuracy.py - So sánh Global Accuracy
+
+### Mục tiêu
+So sánh **Global Accuracy** của các methods trên test set với nhiều mức độ non-IID khác nhau.
+
+### Cú pháp
+```bash
+python exp1_global_accuracy.py [OPTIONS]
+```
+
+### Bảng tham số
+
+| Tham số | Kiểu | Mặc định | Mô tả |
+|---------|------|----------|-------|
+| `--config` | str | `configs/exp1_config.json` | File config |
+| `--methods` | list | all | Methods cần chạy: `fedavg`, `fed_m3`, `fed_dgd`, `fedprox` |
+| `--alphas` | list | all | Các giá trị alpha: `0.1`, `0.5`, `1.0` |
+| `--num-rounds` | int | from config | Override số rounds |
+| `--dry-run` | flag | - | Xem trước config, không chạy |
+| `--export-config` | str | - | Export config ra file |
+
+### Ví dụ
+
+```bash
+# Chạy tất cả (4 methods x 3 alphas = 12 runs)
+python exp1_global_accuracy.py
+
+# Xem trước config (không chạy)
+python exp1_global_accuracy.py --dry-run
+
+# Chạy nhanh để test (10 rounds, 1 method, 1 alpha)
+python exp1_global_accuracy.py --num-rounds 10 --methods fedavg --alphas 0.5
+
+# Chỉ chạy 2 methods
+python exp1_global_accuracy.py --methods fedavg fed_m3
+
+# Chỉ chạy 1 alpha
+python exp1_global_accuracy.py --alphas 0.5
+
+# Dùng config khác
+python exp1_global_accuracy.py --config configs/my_config.json
+
+# Export config để chỉnh sửa
+python exp1_global_accuracy.py --export-config my_config.json
+```
+
+### Output
+```
+results/exp1_global_accuracy/
+├── {method}/cifar10_dirichlet_a{alpha}/
+│   ├── metrics_*.json      # Metrics chi tiết
+│   └── model_*.pt          # Model weights
+├── config_*.json           # Config đã dùng
+└── summary_*.json          # Tóm tắt kết quả
+```
+
+---
+
+## hyperparam_search.py - Hyperparameter Grid Search
+
+### Mục tiêu
+Tìm bộ tham số tốt nhất cho mỗi method bằng cách chạy grid search.
+
+### Cú pháp
+```bash
+python hyperparam_search.py [OPTIONS]
+```
+
+### Bảng tham số
+
+| Tham số | Kiểu | Mặc định | Mô tả |
+|---------|------|----------|-------|
+| `--config` | str | `configs/hyperparam_search.json` | File config grid search |
+| `--method` | list | all | Methods cần search: `fed_m3`, `fed_dgd`, `fedprox` |
+| `--dry-run` | flag | - | Xem trước commands, không chạy |
+| `--no-confirm` | flag | - | Bỏ qua xác nhận trước khi chạy |
+
+### Config file (`configs/hyperparam_search.json`)
+
+```json
+{
+  "base_config": {
+    "dataset": "cifar10",
+    "alpha": 0.5,
+    "num_clients": 10,
+    "num_rounds": 50,
+    "local_epochs": 5,
+    "batch_size": 64,
+    "lr": 0.01,
+    "seed": 42
+  },
+  "grid": {
+    "fed_m3": {
+      "beta1": [0.9, 0.99],
+      "beta3": [0.9, 0.99],
+      "lam": [0.1, 0.3, 0.5]
+    },
+    "fed_dgd": {
+      "decay_strength": [0.05, 0.1, 0.2]
+    },
+    "fedprox": {
+      "mu": [0.001, 0.01, 0.1]
+    }
+  },
+  "output": {
+    "save_dir": "./results/hyperparam_search"
+  }
+}
+```
+
+### Ví dụ
+
+```bash
+# Xem trước tất cả combinations (dry-run)
+python hyperparam_search.py --dry-run
+
+# Chạy full grid search
+python hyperparam_search.py
+
+# Chạy cho 1 method cụ thể
+python hyperparam_search.py --method fed_m3
+python hyperparam_search.py --method fed_dgd
+python hyperparam_search.py --method fedprox
+
+# Bỏ qua xác nhận
+python hyperparam_search.py --no-confirm
+
+# Dùng config khác
+python hyperparam_search.py --config configs/my_grid.json
+```
+
+### Output bảng kết quả
+
+```
+================================================================================
+RESULTS FOR FED_M3
+================================================================================
+       beta1 |        beta3 |          lam | Server Acc (Final) | Server Acc (Best) | Mean Local Acc (Final) | ...
+---------------------------------------------------------------------------------------------------------------------
+         0.9 |          0.9 |          0.3 |             65.42% |            67.85% |                 72.15% | ...
+         0.9 |          0.9 |          0.5 |             64.18% |            66.92% |                 71.33% | ...
+...
+
+Best params (by Server Best): {'beta1': 0.9, 'beta3': 0.9, 'lam': 0.3}
+  Server:     Final=65.42%  Best=67.85%
+  Local Acc:  Final=72.15%  Best=73.22%
+  Global Acc: Final=58.33%  Best=60.12%
+```
+
+### Giải thích các cột
+
+| Cột | Ý nghĩa |
+|-----|---------|
+| **Server Acc (Final)** | Accuracy của global model trên test set ở round cuối |
+| **Server Acc (Best)** | Accuracy cao nhất của global model qua tất cả rounds |
+| **Mean Local Acc (Final)** | Trung bình accuracy của local model trên local data (round cuối) |
+| **Mean Local Acc (Best)** | Trung bình Local Acc cao nhất qua tất cả rounds |
+| **Mean Global Acc (Final)** | Trung bình accuracy của global model trên local data của clients (round cuối) |
+| **Mean Global Acc (Best)** | Trung bình Global Acc cao nhất qua tất cả rounds |
+
+### Output files
+```
+results/hyperparam_search/
+├── {method}/cifar10_dirichlet_a{alpha}/
+│   └── metrics_*.json      # Metrics cho mỗi combination
+└── summary_*.json          # Tóm tắt với best params cho mỗi method
+```
+
+---
+
 ## Experiment Matrix (Recommended)
 
 | # | Dataset | Non-IID | Alpha | Command |
@@ -349,17 +528,38 @@ python run_experiment.py --seed 42  # Phải cho kết quả giống nhau
 
 ## Files quan trọng
 
+### Scripts chính
 | File | Mô tả |
 |------|-------|
-| `run_experiment.py` | Chạy 1 experiment |
-| `run_comparison.py` | So sánh nhiều methods |
-| `test_isolation.py` | Kiểm tra code đúng |
-| `models/cnn.py` | CNN models |
+| `run_experiment.py` | Chạy 1 experiment với 1 method |
+| `run_comparison.py` | So sánh nhiều methods (cùng data split) |
+| `exp1_global_accuracy.py` | Experiment 1: So sánh Global Accuracy |
+| `hyperparam_search.py` | Grid search tìm hyperparameters tốt nhất |
+
+### FL Framework
+| File | Mô tả |
+|------|-------|
 | `fl/client.py` | FL Client |
 | `fl/server.py` | FL Server |
 | `fl/data_split.py` | Non-IID data split |
+| `fl/aggregators.py` | Aggregation functions |
+
+### Models & Optimizers
+| File | Mô tả |
+|------|-------|
+| `models/cnn.py` | CNN models (CNNSmall, CNNMedium) |
 | `optimizers/fed_m3.py` | Fed-M3 optimizer |
+| `optimizers/fed_dgd.py` | Fed-DGD optimizer |
+| `optimizers/fedprox.py` | FedProx optimizer |
+
+### Utils & Configs
+| File | Mô tả |
+|------|-------|
+| `utils/metrics.py` | MetricsTracker |
+| `utils/seed.py` | set_seed() |
+| `configs/exp1_config.json` | Config cho Experiment 1 |
+| `configs/hyperparam_search.json` | Config cho Grid Search |
 
 ---
 
-*Cập nhật: 2026-03-29*
+*Cập nhật: 2026-04-05*
