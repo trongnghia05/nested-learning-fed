@@ -1,0 +1,494 @@
+{
+  "timestamp": "20260413_124049",
+  "base_config": {
+    "dataset": "cifar10",
+    "alpha": 0.5,
+    "num_clients": 10,
+    "num_rounds": 100,
+    "local_epochs": 5,
+    "batch_size": 512,
+    "lr": 0.01,
+    "seed": 42
+  },
+  "grid": {
+    "fed_m3": {
+      "beta1": [
+        0.9,
+        0.5,
+        0.2
+      ],
+      "beta3": [
+        0.9,
+        0.5,
+        0.2
+      ],
+      "lam": [
+        0.1,
+        0.3,
+        0.5
+      ]
+    },
+    "fed_dgd": {
+      "decay_strength": [
+        0.05,
+        0.1,
+        0.2
+      ]
+    },
+    "fedprox": {
+      "mu": [
+        0.001,
+        0.01,
+        0.1
+      ]
+    }
+  },
+  "results": {
+    "fed_m3": [
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.9,
+          "beta3": 0.9,
+          "lam": 0.1
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_060734.json",
+        "server_test_acc": 0.835,
+        "client_train_acc_mean": 0.9265550572216377,
+        "client_test_acc_mean": 0.8597727485591946,
+        "best_server_acc": 0.838,
+        "best_client_train_acc": 0.9265550572216377,
+        "best_client_test_acc": 0.8642435856803182
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.9,
+          "beta3": 0.9,
+          "lam": 0.3
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_080421.json",
+        "server_test_acc": 0.8408,
+        "client_train_acc_mean": 0.933228194518034,
+        "client_test_acc_mean": 0.8713255573468282,
+        "best_server_acc": 0.8422,
+        "best_client_train_acc": 0.933228194518034,
+        "best_client_test_acc": 0.8733248430995804
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.9,
+          "beta3": 0.9,
+          "lam": 0.5
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_095900.json",
+        "server_test_acc": 0.842,
+        "client_train_acc_mean": 0.9406457164365765,
+        "client_test_acc_mean": 0.8807151771339254,
+        "best_server_acc": 0.843,
+        "best_client_train_acc": 0.9443990426152371,
+        "best_client_test_acc": 0.8821954642012436
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.9,
+          "beta3": 0.5,
+          "lam": 0.1
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_115727.json",
+        "server_test_acc": 0.8364,
+        "client_train_acc_mean": 0.9238629530802225,
+        "client_test_acc_mean": 0.8586493169951657,
+        "best_server_acc": 0.838,
+        "best_client_train_acc": 0.9238629530802225,
+        "best_client_test_acc": 0.8652423693008755
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.9,
+          "beta3": 0.5,
+          "lam": 0.3
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_134451.json",
+        "server_test_acc": 0.8418,
+        "client_train_acc_mean": 0.9298139473393799,
+        "client_test_acc_mean": 0.8700257489400538,
+        "best_server_acc": 0.8418,
+        "best_client_train_acc": 0.9346598946177931,
+        "best_client_test_acc": 0.8746291788670529
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.9,
+          "beta3": 0.5,
+          "lam": 0.5
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_153107.json",
+        "server_test_acc": 0.8462,
+        "client_train_acc_mean": 0.9362942281825738,
+        "client_test_acc_mean": 0.8786942042885124,
+        "best_server_acc": 0.8478,
+        "best_client_train_acc": 0.9417597569921394,
+        "best_client_test_acc": 0.8807204376225428
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.9,
+          "beta3": 0.2,
+          "lam": 0.1
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_171858.json",
+        "server_test_acc": 0.8328,
+        "client_train_acc_mean": 0.9225771136741999,
+        "client_test_acc_mean": 0.8576440749141439,
+        "best_server_acc": 0.8396,
+        "best_client_train_acc": 0.9231453879695259,
+        "best_client_test_acc": 0.8642975070425226
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.9,
+          "beta3": 0.2,
+          "lam": 0.3
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_190451.json",
+        "server_test_acc": 0.836,
+        "client_train_acc_mean": 0.9243575678543394,
+        "client_test_acc_mean": 0.8647255910846277,
+        "best_server_acc": 0.838,
+        "best_client_train_acc": 0.931307691204702,
+        "best_client_test_acc": 0.8718885625890789
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.9,
+          "beta3": 0.2,
+          "lam": 0.5
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_205159.json",
+        "server_test_acc": 0.8442,
+        "client_train_acc_mean": 0.9356085110681225,
+        "client_test_acc_mean": 0.8758726885565778,
+        "best_server_acc": 0.8442,
+        "best_client_train_acc": 0.9404597152861467,
+        "best_client_test_acc": 0.8764377147432694
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.5,
+          "beta3": 0.9,
+          "lam": 0.1
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_224118.json",
+        "server_test_acc": 0.7858,
+        "client_train_acc_mean": 0.8765290251415465,
+        "client_test_acc_mean": 0.8077108585070789,
+        "best_server_acc": 0.795,
+        "best_client_train_acc": 0.8892054106864371,
+        "best_client_test_acc": 0.8203224095489349
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.5,
+          "beta3": 0.9,
+          "lam": 0.3
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_002707.json",
+        "server_test_acc": 0.799,
+        "client_train_acc_mean": 0.8889410559193276,
+        "client_test_acc_mean": 0.8224061081176683,
+        "best_server_acc": 0.811,
+        "best_client_train_acc": 0.9036536785549615,
+        "best_client_test_acc": 0.8417594978692631
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.5,
+          "beta3": 0.9,
+          "lam": 0.5
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_021425.json",
+        "server_test_acc": 0.8088,
+        "client_train_acc_mean": 0.8977568499746308,
+        "client_test_acc_mean": 0.8372383485316742,
+        "best_server_acc": 0.8208,
+        "best_client_train_acc": 0.9193605154705266,
+        "best_client_test_acc": 0.8613194972060907
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.5,
+          "beta3": 0.5,
+          "lam": 0.1
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_040104.json",
+        "server_test_acc": 0.7896,
+        "client_train_acc_mean": 0.8765433027099382,
+        "client_test_acc_mean": 0.810591910570259,
+        "best_server_acc": 0.7948,
+        "best_client_train_acc": 0.8896355757593511,
+        "best_client_test_acc": 0.821486728059846
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.5,
+          "beta3": 0.5,
+          "lam": 0.3
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_061843.json",
+        "server_test_acc": 0.8006,
+        "client_train_acc_mean": 0.8848118204723591,
+        "client_test_acc_mean": 0.825641423256336,
+        "best_server_acc": 0.8092,
+        "best_client_train_acc": 0.9048714842509229,
+        "best_client_test_acc": 0.8416325659990711
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.5,
+          "beta3": 0.5,
+          "lam": 0.5
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_085023.json",
+        "server_test_acc": 0.8112,
+        "client_train_acc_mean": 0.8970532253624393,
+        "client_test_acc_mean": 0.8403885446095375,
+        "best_server_acc": 0.818,
+        "best_client_train_acc": 0.9169505777124561,
+        "best_client_test_acc": 0.8534498010337568
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.5,
+          "beta3": 0.2,
+          "lam": 0.1
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_112447.json",
+        "server_test_acc": 0.7838,
+        "client_train_acc_mean": 0.874269316995919,
+        "client_test_acc_mean": 0.8079527995937701,
+        "best_server_acc": 0.7928,
+        "best_client_train_acc": 0.8910190190261551,
+        "best_client_test_acc": 0.820407739691951
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.5,
+          "beta3": 0.2,
+          "lam": 0.3
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_135803.json",
+        "server_test_acc": 0.794,
+        "client_train_acc_mean": 0.8856476629834509,
+        "client_test_acc_mean": 0.8231081086149624,
+        "best_server_acc": 0.805,
+        "best_client_train_acc": 0.9014393140535972,
+        "best_client_test_acc": 0.8369295599372494
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.5,
+          "beta3": 0.2,
+          "lam": 0.5
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_163118.json",
+        "server_test_acc": 0.8064,
+        "client_train_acc_mean": 0.8899770108949705,
+        "client_test_acc_mean": 0.8321028730800266,
+        "best_server_acc": 0.8144,
+        "best_client_train_acc": 0.913110556221002,
+        "best_client_test_acc": 0.8504638152400874
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.2,
+          "beta3": 0.9,
+          "lam": 0.1
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_190207.json",
+        "server_test_acc": 0.762,
+        "client_train_acc_mean": 0.8464524351319487,
+        "client_test_acc_mean": 0.7847933929049571,
+        "best_server_acc": 0.7716,
+        "best_client_train_acc": 0.869555877017396,
+        "best_client_test_acc": 0.793130255639285
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.2,
+          "beta3": 0.9,
+          "lam": 0.3
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_213214.json",
+        "server_test_acc": 0.7856,
+        "client_train_acc_mean": 0.8676327393828409,
+        "client_test_acc_mean": 0.8099518808210776,
+        "best_server_acc": 0.795,
+        "best_client_train_acc": 0.8857827765929601,
+        "best_client_test_acc": 0.820068901421168
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.2,
+          "beta3": 0.9,
+          "lam": 0.5
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260412_235808.json",
+        "server_test_acc": 0.7974,
+        "client_train_acc_mean": 0.8770522270592555,
+        "client_test_acc_mean": 0.8265394250941792,
+        "best_server_acc": 0.8104,
+        "best_client_train_acc": 0.8967805097283333,
+        "best_client_test_acc": 0.8426146154010088
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.2,
+          "beta3": 0.5,
+          "lam": 0.1
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260413_022449.json",
+        "server_test_acc": 0.7614,
+        "client_train_acc_mean": 0.8433277658592717,
+        "client_test_acc_mean": 0.7824052994891052,
+        "best_server_acc": 0.772,
+        "best_client_train_acc": 0.8647805983891945,
+        "best_client_test_acc": 0.7935540483711397
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.2,
+          "beta3": 0.5,
+          "lam": 0.3
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260413_045655.json",
+        "server_test_acc": 0.788,
+        "client_train_acc_mean": 0.8654947398739218,
+        "client_test_acc_mean": 0.8086813809523818,
+        "best_server_acc": 0.791,
+        "best_client_train_acc": 0.877921849665573,
+        "best_client_test_acc": 0.8164609416151161
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.2,
+          "beta3": 0.5,
+          "lam": 0.5
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260413_073001.json",
+        "server_test_acc": 0.7972,
+        "client_train_acc_mean": 0.8743070185873325,
+        "client_test_acc_mean": 0.825829013009973,
+        "best_server_acc": 0.8074,
+        "best_client_train_acc": 0.8940827565006423,
+        "best_client_test_acc": 0.837769492835789
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.2,
+          "beta3": 0.2,
+          "lam": 0.1
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260413_100613.json",
+        "server_test_acc": 0.759,
+        "client_train_acc_mean": 0.8451221099993129,
+        "client_test_acc_mean": 0.7778360393590119,
+        "best_server_acc": 0.771,
+        "best_client_train_acc": 0.8654144797479411,
+        "best_client_test_acc": 0.791611032969354
+      },
+      {
+        "status": "success",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.2,
+          "beta3": 0.2,
+          "lam": 0.3
+        },
+        "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260413_124049.json",
+        "server_test_acc": 0.7832,
+        "client_train_acc_mean": 0.8624760445227864,
+        "client_test_acc_mean": 0.804373461396486,
+        "best_server_acc": 0.7904,
+        "best_client_train_acc": 0.8763929694471072,
+        "best_client_test_acc": 0.8120923589207196
+      },
+      {
+        "status": "skipped",
+        "method": "fed_m3",
+        "params": {
+          "beta1": 0.2,
+          "beta3": 0.2,
+          "lam": 0.5
+        },
+        "note": "Run was interrupted before this combination completed"
+      }
+    ]
+  },
+  "best_params": {
+    "fed_m3": {
+      "status": "success",
+      "method": "fed_m3",
+      "params": {
+        "beta1": 0.9,
+        "beta3": 0.5,
+        "lam": 0.5
+      },
+      "metrics_path": "/Users/nghiatrong/PycharmProjects/nested-learning-fed/luanvan/experiments-2/results/hyperparam_search/fed_m3/fed_m3/cifar10_dirichlet_a0.5/metrics_20260411_153107.json",
+      "server_test_acc": 0.8462,
+      "client_train_acc_mean": 0.9362942281825738,
+      "client_test_acc_mean": 0.8786942042885124,
+      "best_server_acc": 0.8478,
+      "best_client_train_acc": 0.9417597569921394,
+      "best_client_test_acc": 0.8807204376225428
+    }
+  }
+}

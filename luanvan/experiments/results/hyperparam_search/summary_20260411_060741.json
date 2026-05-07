@@ -1,0 +1,108 @@
+{
+  "timestamp": "20260411_060741",
+  "base_config": {
+    "dataset": "cifar10",
+    "alpha": 0.5,
+    "num_clients": 10,
+    "num_rounds": 100,
+    "local_epochs": 5,
+    "batch_size": 512,
+    "lr": 0.01,
+    "seed": 42
+  },
+  "grid": {
+    "fed_m3": {
+      "beta1": [
+        0.9,
+        0.5,
+        0.2
+      ],
+      "beta3": [
+        0.9,
+        0.5,
+        0.2
+      ],
+      "lam": [
+        0.1,
+        0.3,
+        0.5
+      ]
+    },
+    "fed_dgd": {
+      "decay_strength": [
+        0.05,
+        0.1,
+        0.2
+      ]
+    },
+    "fedprox": {
+      "mu": [
+        0.001,
+        0.01,
+        0.1
+      ]
+    }
+  },
+  "results": {
+    "fed_dgd": [
+      {
+        "status": "success",
+        "method": "fed_dgd",
+        "params": {
+          "decay_strength": 0.05
+        },
+        "metrics_path": "results/hyperparam_search/fed_dgd/fed_dgd/cifar10_dirichlet_a0.5/metrics_20260411_080746.json",
+        "server_test_acc": 0.7316,
+        "client_train_acc_mean": 0.8255957490523491,
+        "client_test_acc_mean": 0.7506943711577192,
+        "best_server_acc": 0.7398,
+        "best_client_train_acc": 0.8323116729239249,
+        "best_client_test_acc": 0.7588721994271694
+      },
+      {
+        "status": "success",
+        "method": "fed_dgd",
+        "params": {
+          "decay_strength": 0.1
+        },
+        "metrics_path": "results/hyperparam_search/fed_dgd/fed_dgd/cifar10_dirichlet_a0.5/metrics_20260411_100740.json",
+        "server_test_acc": 0.7304,
+        "client_train_acc_mean": 0.8217543551464728,
+        "client_test_acc_mean": 0.7485842262845813,
+        "best_server_acc": 0.7356,
+        "best_client_train_acc": 0.8289553504905098,
+        "best_client_test_acc": 0.7548200858364853
+      },
+      {
+        "status": "success",
+        "method": "fed_dgd",
+        "params": {
+          "decay_strength": 0.2
+        },
+        "metrics_path": "results/hyperparam_search/fed_dgd/fed_dgd/cifar10_dirichlet_a0.5/metrics_20260411_120819.json",
+        "server_test_acc": 0.7208,
+        "client_train_acc_mean": 0.8168380135200172,
+        "client_test_acc_mean": 0.7415492951223293,
+        "best_server_acc": 0.7326,
+        "best_client_train_acc": 0.8255395872593727,
+        "best_client_test_acc": 0.7501880069969117
+      }
+    ]
+  },
+  "best_params": {
+    "fed_dgd": {
+      "status": "success",
+      "method": "fed_dgd",
+      "params": {
+        "decay_strength": 0.05
+      },
+      "metrics_path": "results/hyperparam_search/fed_dgd/fed_dgd/cifar10_dirichlet_a0.5/metrics_20260411_080746.json",
+      "server_test_acc": 0.7316,
+      "client_train_acc_mean": 0.8255957490523491,
+      "client_test_acc_mean": 0.7506943711577192,
+      "best_server_acc": 0.7398,
+      "best_client_train_acc": 0.8323116729239249,
+      "best_client_test_acc": 0.7588721994271694
+    }
+  }
+}

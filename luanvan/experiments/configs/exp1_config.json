@@ -5,9 +5,9 @@
     "version": "1.0"
   },
 
-  "methods": ["fedavg", "fed_m3"],
+  "methods": ["fedavg", "fed_m3", "fed_dgd", "fedprox"],
 
-  "alphas": [0.5],
+  "alphas": [0.1, 0.5, 1.0],
 
   "dataset": {
     "name": "cifar10",
@@ -15,10 +15,10 @@
   },
 
   "fl": {
-    "num_clients": 5,
-    "num_rounds": 10,
+    "num_clients": 10,
+    "num_rounds": 100,
     "local_epochs": 5,
-    "batch_size": 64,
+    "batch_size": 512,
     "lr": 0.01,
     "non_iid_type": "dirichlet"
   },
@@ -30,15 +30,15 @@
   "fed_m3": {
     "beta1": 0.9,
     "beta2": 0.999,
-    "beta3": 0.9,
-    "lam": 0.3,
+    "beta3": 0.5,
+    "lam": 0.5,
     "ns_steps": 5,
     "v_init": 1.0
   },
 
   "fed_dgd": {
     "alpha": 1.0,
-    "decay_strength": 0.1
+    "decay_strength": 0.05
   },
 
   "fedprox": {

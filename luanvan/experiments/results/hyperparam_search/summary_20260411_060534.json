@@ -1,0 +1,108 @@
+{
+  "timestamp": "20260411_060534",
+  "base_config": {
+    "dataset": "cifar10",
+    "alpha": 0.5,
+    "num_clients": 10,
+    "num_rounds": 100,
+    "local_epochs": 5,
+    "batch_size": 512,
+    "lr": 0.01,
+    "seed": 42
+  },
+  "grid": {
+    "fed_m3": {
+      "beta1": [
+        0.9,
+        0.5,
+        0.2
+      ],
+      "beta3": [
+        0.9,
+        0.5,
+        0.2
+      ],
+      "lam": [
+        0.1,
+        0.3,
+        0.5
+      ]
+    },
+    "fed_dgd": {
+      "decay_strength": [
+        0.05,
+        0.1,
+        0.2
+      ]
+    },
+    "fedprox": {
+      "mu": [
+        0.001,
+        0.01,
+        0.1
+      ]
+    }
+  },
+  "results": {
+    "fedprox": [
+      {
+        "status": "success",
+        "method": "fedprox",
+        "params": {
+          "mu": 0.001
+        },
+        "metrics_path": "results/hyperparam_search/fedprox/fedprox/cifar10_dirichlet_a0.5/metrics_20260411_080628.json",
+        "server_test_acc": 0.7342,
+        "client_train_acc_mean": 0.8285533896519468,
+        "client_test_acc_mean": 0.7544083581941614,
+        "best_server_acc": 0.7412,
+        "best_client_train_acc": 0.8339668967907722,
+        "best_client_test_acc": 0.7622649746352431
+      },
+      {
+        "status": "success",
+        "method": "fedprox",
+        "params": {
+          "mu": 0.01
+        },
+        "metrics_path": "results/hyperparam_search/fedprox/fedprox/cifar10_dirichlet_a0.5/metrics_20260411_100408.json",
+        "server_test_acc": 0.737,
+        "client_train_acc_mean": 0.8279333321789732,
+        "client_test_acc_mean": 0.7536023670586104,
+        "best_server_acc": 0.743,
+        "best_client_train_acc": 0.8343134053732125,
+        "best_client_test_acc": 0.7609235288597356
+      },
+      {
+        "status": "success",
+        "method": "fedprox",
+        "params": {
+          "mu": 0.1
+        },
+        "metrics_path": "results/hyperparam_search/fedprox/fedprox/cifar10_dirichlet_a0.5/metrics_20260411_120528.json",
+        "server_test_acc": 0.7344,
+        "client_train_acc_mean": 0.8244725236032305,
+        "client_test_acc_mean": 0.7514611778977571,
+        "best_server_acc": 0.7404,
+        "best_client_train_acc": 0.833515774702053,
+        "best_client_test_acc": 0.7597864765374586
+      }
+    ]
+  },
+  "best_params": {
+    "fedprox": {
+      "status": "success",
+      "method": "fedprox",
+      "params": {
+        "mu": 0.01
+      },
+      "metrics_path": "results/hyperparam_search/fedprox/fedprox/cifar10_dirichlet_a0.5/metrics_20260411_100408.json",
+      "server_test_acc": 0.737,
+      "client_train_acc_mean": 0.8279333321789732,
+      "client_test_acc_mean": 0.7536023670586104,
+      "best_server_acc": 0.743,
+      "best_client_train_acc": 0.8343134053732125,
+      "best_client_test_acc": 0.7609235288597356
+    }
+  }
+}

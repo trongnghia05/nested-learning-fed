@@ -23,6 +23,7 @@ dependencies = [
   "zstandard>=0.22.0",
   "langdetect>=1.0.9",
   "typer>=0.12",
+  "torchvision>=0.24.0",
 ]
 
 [project.scripts]
