@@ -8,9 +8,9 @@
     "dataset": "cifar10",
     "alpha": 0.5,
     "num_clients": 10,
-    "num_rounds": 3,
+    "num_rounds": 100,
     "local_epochs": 5,
-    "batch_size": 64,
+    "batch_size": 512,
     "lr": 0.01,
     "seed": 42
   },
