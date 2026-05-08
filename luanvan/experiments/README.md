@@ -287,6 +287,111 @@ results/comparison/<dataset>_<non_iid>_a<alpha>_<timestamp>/
 
 ---
 
+## exp1_report.py - Tổng hợp kết quả và in bảng paper
+
+### Mục tiêu
+Đọc tất cả kết quả từ `results/exp1_global_accuracy/` và tạo ra:
+- **Table 2**: Global Accuracy (final & best)
+- **Table 3**: Convergence Speed (số rounds để đạt target accuracy)
+- **Plots**: Accuracy curves theo rounds cho từng dataset/alpha
+
+### Cú pháp
+```bash
+python exp1_report.py [OPTIONS]
+```
+
+### Bảng tham số
+
+| Tham số | Mô tả |
+|---------|-------|
+| `--dataset` | Chỉ report 1 dataset: `cifar10` hoặc `fmnist` |
+| `--no-plot` | Chỉ in bảng, không vẽ đồ thị |
+| `--save-plots DIR` | Lưu plot vào folder |
+| `--save-csv` | Lưu bảng ra file CSV |
+| `--use-best` | Dùng best accuracy thay vì final accuracy |
+| `--results-dir` | Override đường dẫn results |
+
+### Ví dụ
+
+```bash
+# In tất cả bảng + hiện plot
+python exp1_report.py
+
+# Chỉ in bảng, không plot
+python exp1_report.py --no-plot
+
+# Lưu plot vào folder figures/
+python exp1_report.py --save-plots ./figures
+
+# Lưu cả bảng CSV và plot
+python exp1_report.py --save-csv --save-plots ./figures
+
+# Chỉ CIFAR-10
+python exp1_report.py --dataset cifar10 --no-plot
+```
+
+### Target Accuracy cho Table 3
+| Dataset | Target |
+|---------|--------|
+| FMNIST | 85% |
+| CIFAR-10 | 70% |
+
+---
+
+## exp1_resume.py - Resume experiments bị dừng giữa chừng
+
+### Mục tiêu
+Tự động check experiments nào đã chạy xong, chỉ chạy những cái còn thiếu.
+
+### Cú pháp
+```bash
+python exp1_resume.py [OPTIONS]
+```
+
+### Bảng tham số
+
+| Tham số | Mô tả |
+|---------|-------|
+| `--dry-run` | Chỉ xem status (done/missing), không chạy |
+| `--dataset` | Chỉ check 1 dataset: `cifar10` hoặc `fmnist` |
+| `--force` | Chạy lại tất cả kể cả đã có kết quả |
+| `--no-confirm` | Không hỏi xác nhận trước khi chạy |
+
+### Ví dụ
+
+```bash
+# Check status + chạy những cái còn thiếu
+python exp1_resume.py
+
+# Chỉ xem status, không chạy
+python exp1_resume.py --dry-run
+
+# Resume chỉ FMNIST
+python exp1_resume.py --dataset fmnist
+
+# Resume chỉ CIFAR-10, không hỏi xác nhận
+python exp1_resume.py --dataset cifar10 --no-confirm
+```
+
+### Output mẫu
+
+```
+=================================================================
+STATUS CHECK - CIFAR10
+=================================================================
+Method       | a=0.1  | a=0.5  | a=1.0
+-----------------------------------------
+fedavg       | DONE   | DONE   | DONE
+fed_m3       | DONE   | DONE   | MISS
+fed_dgd      | MISS   | MISS   | MISS
+fedprox      | MISS   | MISS   | MISS
+
+Done:    7/12
+Missing: 5/12
+```
+
+---
+
 ## exp1_global_accuracy.py - So sánh Global Accuracy
 
 ### Mục tiêu
