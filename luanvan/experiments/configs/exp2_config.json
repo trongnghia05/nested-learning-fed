@@ -1,0 +1,37 @@
+{
+  "experiment": {
+    "name": "exp2_personalized_accuracy",
+    "description": "Personalized Accuracy sau khi fine-tune global model tren 10% local data"
+  },
+
+  "methods": ["fedavg", "fed_m3", "fed_dgd", "fedprox"],
+
+  "alphas": [0.1, 0.5, 1.0],
+
+  "datasets": ["fmnist", "cifar10"],
+
+  "fl": {
+    "num_clients": 10,
+    "non_iid_type": "dirichlet",
+    "seed": 42
+  },
+
+  "finetune": {
+    "ratio": 0.1,
+    "epochs": 5,
+    "lr": 0.001,
+    "batch_size": 32
+  },
+
+  "training": {
+    "device": "auto"
+  },
+
+  "input": {
+    "exp1_results_dir": "./results/exp1_global_accuracy"
+  },
+
+  "output": {
+    "save_dir": "./results/exp2_personalized_accuracy"
+  }
+}

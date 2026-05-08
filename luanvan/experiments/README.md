@@ -7,14 +7,12 @@
 ## Mục lục
 
 1. [Data Split Strategy](#data-split-strategy)
-2. [Cách chạy nhanh](#cách-chạy-nhanh)
-3. [run_experiment.py - Tham số chi tiết](#run_experimentpy---tham-số-chi-tiết)
-4. [run_comparison.py - Tham số chi tiết](#run_comparisonpy---tham-số-chi-tiết)
-5. [exp1_global_accuracy.py - So sánh Global Accuracy](#exp1_global_accuracypy---so-sánh-global-accuracy)
-6. [hyperparam_search.py - Hyperparameter Grid Search](#hyperparam_searchpy---hyperparameter-grid-search)
-7. [Experiment Matrix (Recommended)](#experiment-matrix-recommended)
-8. [Troubleshooting](#troubleshooting)
-9. [Files quan trọng](#files-quan-trọng)
+2. [Scripts cơ bản](#scripts-cơ-bản)
+3. [Hyperparameter Search](#hyperparameter-search)
+4. [Thực Nghiệm](#thực-nghiệm)
+   - [Experiment 1: Global Accuracy](#experiment-1-global-accuracy)
+   - [Experiment 2: Personalized Accuracy](#experiment-2-personalized-accuracy)
+5. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -23,295 +21,203 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  CIFAR-10 (Original Train: 50,000 images)                           │
-│  ─────────────────────────────────────────────────────────────────  │
-│  Split 80-10-10:                                                    │
-│       ├── Train (40,000) → Chia cho N clients (Dirichlet/etc)      │
+│       ├── Train (40,000) → Chia cho N clients (Dirichlet)           │
 │       ├── Validation (5,000) → Hyperparameter tuning                │
 │       └── Test (5,000) → Final evaluation (global model)            │
 │                                                                      │
 │  FASHION-MNIST (Original Train: 60,000 images)                      │
-│  ─────────────────────────────────────────────────────────────────  │
-│  Split 80-10-10:                                                    │
 │       ├── Train (48,000) → Chia cho N clients                       │
 │       ├── Validation (6,000) → Hyperparameter tuning                │
 │       └── Test (6,000) → Final evaluation                           │
 └─────────────────────────────────────────────────────────────────────┘
 
 Tỷ lệ: Train 80% | Validation 10% | Test 10%
-
-Seed đảm bảo:
-  - Cùng seed → Cùng train/val/test split
-  - Cùng seed → Cùng client data split
-  → Reproducible experiments!
 ```
-
-### Tại sao cần Validation set?
 
 | Set | Mục đích |
 |-----|----------|
 | **Train** | Chia cho clients để train local |
-| **Validation** | Tuning hyperparameters (lr, alpha, lambda, etc.) |
-| **Test** | Đánh giá cuối cùng, KHÔNG dùng để tune |
+| **Validation** | Tuning hyperparameters — KHÔNG dùng để đánh giá cuối |
+| **Test** | Báo cáo kết quả cuối cùng — KHÔNG dùng để tune |
 
-**Quan trọng:** Test set chỉ dùng để báo cáo kết quả cuối cùng!
-
----
-
-## Cách chạy nhanh
-
-```bash
-cd luanvan/experiments
-
-# 1. Test isolation (kiểm tra code đúng)
-python test_isolation.py
-
-# 2. Chạy FedAvg baseline
-python run_experiment.py --method fedavg --dataset cifar10
-
-# 3. Chạy Fed-M3
-python run_experiment.py --method fed_m3 --dataset cifar10
-
-# 4. So sánh methods
-python run_comparison.py --dataset cifar10 --methods fedavg fed_m3
-```
+**Seed đảm bảo:** Cùng seed → cùng train/val/test split → cùng client data split → reproducible!
 
 ---
 
-## run_experiment.py - Tham số chi tiết
+## Scripts cơ bản
 
-### Cú pháp
-```bash
-python run_experiment.py [OPTIONS]
-```
+Hai file này là nền tảng cho toàn bộ framework. Các script cấp cao (exp1, exp2, hyperparam_search) đều gọi lại `run_experiment.py` bên trong.
 
-### Bảng tham số
+### run_experiment.py — Chạy 1 experiment đơn lẻ
 
-| Tham số | Kiểu | Mặc định | Mô tả |
-|---------|------|----------|-------|
-| `--method` | str | `fedavg` | Phương pháp FL: `fedavg`, `fed_m3`, `fed_dgd`, `fedprox` |
-| `--dataset` | str | `cifar10` | Dataset: `cifar10` hoặc `fmnist` |
-| `--num-clients` | int | `10` | Số lượng clients trong FL |
-| `--num-rounds` | int | `100` | Số communication rounds |
-| `--local-epochs` | int | `5` | Số epochs train local mỗi round |
-| `--batch-size` | int | `32` | Batch size cho local training |
-| `--lr` | float | `0.01` | Learning rate |
-| `--non-iid` | str | `dirichlet` | Loại non-IID: `dirichlet`, `quantity`, `iid` |
-| `--alpha` | float | `0.5` | Dirichlet α (nhỏ = more non-IID) |
-| `--beta1` | float | `0.9` | Fed-M3: Fast momentum coefficient |
-| `--beta2` | float | `0.999` | Fed-M3: Second moment coefficient |
-| `--beta3` | float | `0.9` | Fed-M3: Slow momentum coefficient (server) |
-| `--lam` | float | `0.3` | Fed-M3: Balance factor (local vs global) |
-| `--ns-steps` | int | `5` | Fed-M3: Newton-Schulz iterations |
-| `--seed` | int | `42` | Random seed cho reproducibility |
-| `--device` | str | `auto` | Device: `cuda`, `cpu`, hoặc `auto` |
-| `--save-dir` | str | `./results` | Thư mục lưu kết quả |
-
-### Giải thích chi tiết
-
-#### Non-IID Alpha (`--alpha`)
-```
-α = 0.1  → Very non-IID (mỗi client chỉ có 1-2 classes dominant)
-α = 0.5  → Moderate non-IID (default, recommended cho main experiments)
-α = 1.0  → Mild non-IID (các client có nhiều classes hơn)
-α = 10.0 → Near IID (gần như uniform distribution)
-```
-
-#### Fed-M3 Lambda (`--lam`)
-```
-λ = 0.0  → Chỉ dùng local direction (o1), bỏ qua global
-λ = 0.3  → Default: 70% local + 30% global (recommended)
-λ = 0.5  → Balance: 50% local + 50% global
-λ = 1.0  → Ưu tiên global direction nhiều hơn
-```
-
-#### Fed-M3 Beta values
-```
-β1 (beta1) = 0.9   → Fast momentum decay (local, mỗi client)
-β2 (beta2) = 0.999 → Second moment decay (cho normalization)
-β3 (beta3) = 0.9   → Slow momentum decay (server, global)
-```
-
-### Ví dụ
+Chạy 1 method với 1 bộ config cụ thể. Dùng trực tiếp khi muốn thử nhanh hoặc debug.
 
 ```bash
-# Experiment 1: FedAvg trên CIFAR-10, moderate non-IID
-python run_experiment.py \
-    --method fedavg \
-    --dataset cifar10 \
-    --num-clients 10 \
-    --num-rounds 100 \
-    --alpha 0.5
+# Chạy FedAvg trên CIFAR-10
+python run_experiment.py --method fedavg --dataset cifar10 --alpha 0.5 --num-rounds 100
 
-# Experiment 2: Fed-M3 trên CIFAR-10, severe non-IID
-python run_experiment.py \
-    --method fed_m3 \
-    --dataset cifar10 \
-    --num-clients 10 \
-    --num-rounds 100 \
-    --alpha 0.1 \
-    --lam 0.3 \
-    --beta3 0.9
+# Chạy Fed-M3 với best params
+python run_experiment.py --method fed_m3 --dataset cifar10 --alpha 0.1 \
+    --beta1 0.9 --beta3 0.5 --lam 0.5 --num-rounds 100
 
-# Experiment 3: Fed-M3 trên FMNIST, IID baseline
-python run_experiment.py \
-    --method fed_m3 \
-    --dataset fmnist \
-    --non-iid iid \
-    --num-rounds 50
+# Chạy Fed-DGD
+python run_experiment.py --method fed_dgd --dataset cifar10 --alpha 0.5 \
+    --dgd-decay-strength 0.05 --num-rounds 100
 
-# Experiment 4: Quick test (ít rounds)
-python run_experiment.py \
-    --method fedavg \
-    --dataset cifar10 \
-    --num-rounds 10 \
-    --local-epochs 1
+# Chạy FedProx
+python run_experiment.py --method fedprox --dataset cifar10 --alpha 0.5 \
+    --fedprox-mu 0.01 --num-rounds 100
+
+# Quick test (2 rounds, CPU)
+python run_experiment.py --method fedavg --dataset cifar10 --num-rounds 2 --device cpu
 ```
 
-### Output mẫu (Per-Client Results)
+Các tham số chính:
 
-```
-──────────────────────────────────────────────────────────────────────
-Round 10
-──────────────────────────────────────────────────────────────────────
-  Global Test Acc: 45.23% | Test Loss: 1.5432 | Avg Train Loss: 1.2345
-
-  Per-Client Results (with global model on local data):
-  Client   Samples    Train Loss   Local Acc    Global Acc
-  ------------------------------------------------------
-  0        5234       1.1234       52.34        48.23
-  1        4521       1.2345       48.12        45.67
-  2        6123       0.9876       55.67        51.23
-  ...
-
-  Summary:
-    Acc Range: 42.12% - 55.67%
-    Acc Std:   4.23%
-    Loss Range: 0.9876 - 1.4567
-```
-
-**Giải thích các cột:**
-| Cột | Ý nghĩa |
-|-----|---------|
-| `Client` | ID của client |
-| `Samples` | Số samples local của client |
-| `Train Loss` | Loss sau khi train local |
-| `Local Acc` | Accuracy của LOCAL model trên local data |
-| `Global Acc` | Accuracy của GLOBAL model trên local data của client |
-
-**Tại sao cần cả Local Acc và Global Acc?**
-- `Local Acc`: Cho thấy client học tốt thế nào trên data của mình
-- `Global Acc`: Cho thấy global model hoạt động tốt thế nào cho từng client
-- Nếu `Local Acc >> Global Acc`: Client bị overfit trên local data
-- Nếu `Global Acc` variance cao: Non-IID ảnh hưởng nhiều
+| Tham số | Mặc định | Mô tả |
+|---------|----------|-------|
+| `--method` | `fedavg` | `fedavg`, `fed_m3`, `fed_dgd`, `fedprox` |
+| `--dataset` | `cifar10` | `cifar10` hoặc `fmnist` |
+| `--alpha` | `0.5` | Dirichlet α (0.1=severe, 0.5=moderate, 1.0=mild non-IID) |
+| `--num-rounds` | `100` | Số communication rounds |
+| `--num-clients` | `10` | Số clients |
+| `--local-epochs` | `5` | Số epochs train local mỗi round |
+| `--batch-size` | `512` | Batch size |
+| `--lr` | `0.01` | Learning rate |
+| `--seed` | `42` | Random seed |
+| `--device` | `auto` | `cuda`, `mps`, `cpu`, hoặc `auto` |
+| `--save-dir` | `./results` | Thư mục lưu kết quả |
 
 ---
 
-## run_comparison.py - Tham số chi tiết
+### run_comparison.py — So sánh nhiều methods với cùng data split
 
-### Cú pháp
-```bash
-python run_comparison.py [OPTIONS]
-```
-
-### Bảng tham số
-
-| Tham số | Kiểu | Mặc định | Mô tả |
-|---------|------|----------|-------|
-| `--dataset` | str | `cifar10` | Dataset: `cifar10` hoặc `fmnist` |
-| `--methods` | list | `fedavg fed_m3` | Các methods cần so sánh |
-| `--num-clients` | int | `10` | Số lượng clients |
-| `--num-rounds` | int | `100` | Số communication rounds |
-| `--local-epochs` | int | `5` | Số epochs local mỗi round |
-| `--batch-size` | int | `32` | Batch size |
-| `--lr` | float | `0.01` | Learning rate |
-| `--non-iid` | str | `dirichlet` | Loại non-IID |
-| `--alpha` | float | `0.5` | Dirichlet α |
-| `--seed` | int | `42` | Random seed |
-| `--device` | str | `auto` | Device |
-| `--save-dir` | str | `./results` | Thư mục lưu |
-
-### Điểm quan trọng
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  QUAN TRỌNG: run_comparison.py đảm bảo FAIR COMPARISON     │
-│                                                              │
-│  • CÙNG data split cho tất cả methods (same seed)          │
-│  • CÙNG model initialization                                │
-│  • CHỈ khác: optimizer/algorithm                            │
-│                                                              │
-│  → Sự khác biệt về accuracy chỉ do algorithm!              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Ví dụ
+Đảm bảo **fair comparison**: cùng seed → cùng data split → sự khác biệt accuracy chỉ do algorithm.
 
 ```bash
-# So sánh FedAvg vs Fed-M3 trên CIFAR-10
-python run_comparison.py \
-    --dataset cifar10 \
-    --methods fedavg fed_m3 \
-    --alpha 0.5 \
-    --num-rounds 100
+# So sánh FedAvg vs Fed-M3
+python run_comparison.py --dataset cifar10 --methods fedavg fed_m3 --alpha 0.5
 
-# So sánh trên severe non-IID
-python run_comparison.py \
-    --dataset cifar10 \
-    --methods fedavg fed_m3 \
-    --alpha 0.1 \
-    --num-rounds 150
-
-# Quick comparison (testing)
-python run_comparison.py \
-    --dataset fmnist \
-    --methods fedavg fed_m3 \
-    --num-rounds 20 \
-    --local-epochs 2
+# So sánh tất cả 4 methods
+python run_comparison.py --dataset cifar10 --methods fedavg fedprox fed_m3 fed_dgd --alpha 0.1
 ```
 
-### Output
+> **Lưu ý:** Với full experiments (24 runs), nên dùng `exp1_global_accuracy.py` thay vì `run_comparison.py` vì exp1 có thêm resume và report.
 
-Sau khi chạy, sẽ có:
+---
+
+## Hyperparameter Search
+
+### Tại sao cần bước này?
+
+Mỗi method (Fed-M3, Fed-DGD, FedProx) có các hyperparameter riêng ảnh hưởng lớn đến kết quả.
+Nếu so sánh các methods với hyperparameters mặc định hoặc chưa được tune, kết quả sẽ **không fair**.
+Hyperparameter search đảm bảo mỗi method được chạy với **bộ tham số tốt nhất** trước khi so sánh.
+
 ```
-results/comparison/<dataset>_<non_iid>_a<alpha>_<timestamp>/
-├── data_distribution.png    # Biểu đồ phân bố data
-├── comparison_plot.png      # So sánh accuracy curves
-├── summary.txt              # Tóm tắt kết quả
-├── fedavg/                  # Kết quả FedAvg
-│   ├── metrics_*.json
-│   └── model_*.pt
-└── fed_m3/                  # Kết quả Fed-M3
-    ├── metrics_*.json
-    └── model_*.pt
+Fed-M3:   beta1 × beta3 × lam  → 27 combinations
+Fed-DGD:  decay_strength        →  3 combinations
+FedProx:  mu                    →  3 combinations
+```
+
+Config: `configs/hyperparam_search.json`
+
+### Best params đã tìm được
+
+| Method | Params | Best Server Acc |
+|--------|--------|----------------|
+| Fed-M3 | beta1=0.9, beta3=0.5, lam=0.5 | 84.78% |
+| Fed-DGD | decay_strength=0.05 | 73.98% |
+| FedProx | mu=0.01 | 74.30% |
+
+> Kết quả lưu tại `results/hyperparam_search/`
+
+### Cách chạy
+
+```bash
+# Xem trước (dry-run)
+python hyperparam_search.py --dry-run
+
+# Chạy cho 1 method
+python hyperparam_search.py --method fed_m3 --no-confirm
+python hyperparam_search.py --method fed_dgd --no-confirm
+python hyperparam_search.py --method fedprox --no-confirm
+
+# Chạy tất cả
+python hyperparam_search.py --no-confirm
 ```
 
 ---
 
-## exp1_report.py - Tổng hợp kết quả và in bảng paper
+## Thực Nghiệm
+
+---
+
+### Experiment 1: Global Accuracy
 
 ### Mục tiêu
-Đọc tất cả kết quả từ `results/exp1_global_accuracy/` và tạo ra:
-- **Table 2**: Global Accuracy (final & best)
-- **Table 3**: Convergence Speed (số rounds để đạt target accuracy)
-- **Plots**: Accuracy curves theo rounds cho từng dataset/alpha
+So sánh **Global Accuracy** của 4 methods trên test set với các mức độ non-IID khác nhau.
 
-### Cú pháp
+### Kịch bản
+- **Dataset:** CIFAR-10, FMNIST
+- **Methods:** FedAvg, FedProx, Fed-M3, Fed-DGD
+- **Non-IID:** Dirichlet α = {0.1, 0.5, 1.0}
+- **Setup:** 10 clients, 100 rounds, 5 local epochs
+- **Tổng:** 2 datasets × 4 methods × 3 alphas = **24 runs**
+
+Config: `configs/exp1_config.json`
+
+### Bước 1 — Chạy experiments
+
 ```bash
-python exp1_report.py [OPTIONS]
+# Chạy tất cả (24 runs, ~4h/run trên server GPU)
+python exp1_global_accuracy.py --no-confirm
+
+# Chạy từng dataset riêng
+python exp1_global_accuracy.py --dataset cifar10 --no-confirm
+python exp1_global_accuracy.py --dataset fmnist --no-confirm
+
+# Xem trước config (không chạy)
+python exp1_global_accuracy.py --dry-run
+
+# Quick test (2 rounds)
+python exp1_global_accuracy.py --num-rounds 2 --methods fedavg --alphas 0.5 --no-confirm
 ```
 
-### Bảng tham số
+### Bước 2 — Resume nếu bị dừng giữa chừng
 
-| Tham số | Mô tả |
-|---------|-------|
-| `--dataset` | Chỉ report 1 dataset: `cifar10` hoặc `fmnist` |
-| `--no-plot` | Chỉ in bảng, không vẽ đồ thị |
-| `--save-plots DIR` | Lưu plot vào folder |
-| `--save-csv` | Lưu bảng ra file CSV |
-| `--use-best` | Dùng best accuracy thay vì final accuracy |
-| `--results-dir` | Override đường dẫn results |
+Script `exp1_resume.py` tự động check kết quả nào đã có, chỉ chạy cái còn thiếu.
 
-### Ví dụ
+```bash
+# Xem status (done/missing)
+python exp1_resume.py --dry-run
+
+# Chạy tiếp những cái còn thiếu
+python exp1_resume.py --no-confirm
+
+# Chỉ resume 1 dataset
+python exp1_resume.py --dataset cifar10 --no-confirm
+python exp1_resume.py --dataset fmnist --no-confirm
+```
+
+Output mẫu:
+```
+=================================================================
+STATUS CHECK - CIFAR10
+=================================================================
+Method       | a=0.1  | a=0.5  | a=1.0
+-----------------------------------------
+FedAvg       | DONE   | DONE   | DONE
+Fed-M3       | DONE   | DONE   | MISS
+Fed-DGD      | MISS   | MISS   | MISS
+FedProx      | MISS   | MISS   | MISS
+
+Done:    7/12 | Missing: 5/12
+```
+
+### Bước 3 — Xem kết quả
+
+Script `exp1_report.py` đọc tất cả metrics JSON và in bảng kết quả cho paper.
 
 ```bash
 # In tất cả bảng + hiện plot
@@ -320,287 +226,104 @@ python exp1_report.py
 # Chỉ in bảng, không plot
 python exp1_report.py --no-plot
 
-# Lưu plot vào folder figures/
-python exp1_report.py --save-plots ./figures
-
-# Lưu cả bảng CSV và plot
+# Lưu plot và CSV
 python exp1_report.py --save-csv --save-plots ./figures
 
-# Chỉ CIFAR-10
+# Chỉ 1 dataset
 python exp1_report.py --dataset cifar10 --no-plot
 ```
 
-### Target Accuracy cho Table 3
-| Dataset | Target |
-|---------|--------|
-| FMNIST | 85% |
-| CIFAR-10 | 70% |
+Kết quả bao gồm:
+- **Table 1 (Global Accuracy):** Final server test_acc của mỗi method/dataset/alpha
+- **Table 3 (Convergence Speed):** Số rounds để đạt target accuracy (CIFAR-10: 70%, FMNIST: 85%)
+- **Plots:** Accuracy curves theo rounds
 
----
+### Output structure
 
-## exp1_resume.py - Resume experiments bị dừng giữa chừng
-
-### Mục tiêu
-Tự động check experiments nào đã chạy xong, chỉ chạy những cái còn thiếu.
-
-### Cú pháp
-```bash
-python exp1_resume.py [OPTIONS]
-```
-
-### Bảng tham số
-
-| Tham số | Mô tả |
-|---------|-------|
-| `--dry-run` | Chỉ xem status (done/missing), không chạy |
-| `--dataset` | Chỉ check 1 dataset: `cifar10` hoặc `fmnist` |
-| `--force` | Chạy lại tất cả kể cả đã có kết quả |
-| `--no-confirm` | Không hỏi xác nhận trước khi chạy |
-
-### Ví dụ
-
-```bash
-# Check status + chạy những cái còn thiếu
-python exp1_resume.py
-
-# Chỉ xem status, không chạy
-python exp1_resume.py --dry-run
-
-# Resume chỉ FMNIST
-python exp1_resume.py --dataset fmnist
-
-# Resume chỉ CIFAR-10, không hỏi xác nhận
-python exp1_resume.py --dataset cifar10 --no-confirm
-```
-
-### Output mẫu
-
-```
-=================================================================
-STATUS CHECK - CIFAR10
-=================================================================
-Method       | a=0.1  | a=0.5  | a=1.0
------------------------------------------
-fedavg       | DONE   | DONE   | DONE
-fed_m3       | DONE   | DONE   | MISS
-fed_dgd      | MISS   | MISS   | MISS
-fedprox      | MISS   | MISS   | MISS
-
-Done:    7/12
-Missing: 5/12
-```
-
----
-
-## exp1_global_accuracy.py - So sánh Global Accuracy
-
-### Mục tiêu
-So sánh **Global Accuracy** của các methods trên test set với nhiều mức độ non-IID khác nhau.
-
-### Cú pháp
-```bash
-python exp1_global_accuracy.py [OPTIONS]
-```
-
-### Bảng tham số
-
-| Tham số | Kiểu | Mặc định | Mô tả |
-|---------|------|----------|-------|
-| `--config` | str | `configs/exp1_config.json` | File config |
-| `--methods` | list | all | Methods cần chạy: `fedavg`, `fed_m3`, `fed_dgd`, `fedprox` |
-| `--alphas` | list | all | Các giá trị alpha: `0.1`, `0.5`, `1.0` |
-| `--num-rounds` | int | from config | Override số rounds |
-| `--dry-run` | flag | - | Xem trước config, không chạy |
-| `--export-config` | str | - | Export config ra file |
-
-### Ví dụ
-
-```bash
-# Chạy tất cả (4 methods x 3 alphas = 12 runs)
-python exp1_global_accuracy.py
-
-# Xem trước config (không chạy)
-python exp1_global_accuracy.py --dry-run
-
-# Chạy nhanh để test (10 rounds, 1 method, 1 alpha)
-python exp1_global_accuracy.py --num-rounds 10 --methods fedavg --alphas 0.5
-
-# Chỉ chạy 2 methods
-python exp1_global_accuracy.py --methods fedavg fed_m3
-
-# Chỉ chạy 1 alpha
-python exp1_global_accuracy.py --alphas 0.5
-
-# Dùng config khác
-python exp1_global_accuracy.py --config configs/my_config.json
-
-# Export config để chỉnh sửa
-python exp1_global_accuracy.py --export-config my_config.json
-```
-
-### Output
 ```
 results/exp1_global_accuracy/
-├── {method}/cifar10_dirichlet_a{alpha}/
-│   ├── metrics_*.json      # Metrics chi tiết
-│   └── model_*.pt          # Model weights
+├── {method}/{dataset}_dirichlet_a{alpha}/
+│   ├── metrics_*.json      # Per-round metrics
+│   └── model_*.pt          # Global model checkpoint
 ├── config_*.json           # Config đã dùng
 └── summary_*.json          # Tóm tắt kết quả
 ```
 
 ---
 
-## hyperparam_search.py - Hyperparameter Grid Search
+### Experiment 2: Personalized Accuracy
 
 ### Mục tiêu
-Tìm bộ tham số tốt nhất cho mỗi method bằng cách chạy grid search.
+Đo **Personalized Accuracy** sau khi fine-tune global model trên local data của mỗi client.
 
-### Cú pháp
-```bash
-python hyperparam_search.py [OPTIONS]
-```
+### Kịch bản
+- Lấy global model từ Exp 1 (`model_*.pt`)
+- Mỗi client: chia local data → **10% fine-tune / 90% test**
+- Fine-tune global model → đánh giá trên 90% còn lại
+- Báo cáo: Min (%) và Mean (%) accuracy across clients
 
-### Bảng tham số
+> **Lưu ý:** Phải chạy **Experiment 1 trước** để có `model_*.pt`
 
-| Tham số | Kiểu | Mặc định | Mô tả |
-|---------|------|----------|-------|
-| `--config` | str | `configs/hyperparam_search.json` | File config grid search |
-| `--method` | list | all | Methods cần search: `fed_m3`, `fed_dgd`, `fedprox` |
-| `--dry-run` | flag | - | Xem trước commands, không chạy |
-| `--no-confirm` | flag | - | Bỏ qua xác nhận trước khi chạy |
+Config: `configs/exp2_config.json`
 
-### Config file (`configs/hyperparam_search.json`)
-
-```json
-{
-  "base_config": {
-    "dataset": "cifar10",
-    "alpha": 0.5,
-    "num_clients": 10,
-    "num_rounds": 50,
-    "local_epochs": 5,
-    "batch_size": 64,
-    "lr": 0.01,
-    "seed": 42
-  },
-  "grid": {
-    "fed_m3": {
-      "beta1": [0.9, 0.99],
-      "beta3": [0.9, 0.99],
-      "lam": [0.1, 0.3, 0.5]
-    },
-    "fed_dgd": {
-      "decay_strength": [0.05, 0.1, 0.2]
-    },
-    "fedprox": {
-      "mu": [0.001, 0.01, 0.1]
-    }
-  },
-  "output": {
-    "save_dir": "./results/hyperparam_search"
-  }
-}
-```
-
-### Ví dụ
+### Bước 1 — Chạy experiments
 
 ```bash
-# Xem trước tất cả combinations (dry-run)
-python hyperparam_search.py --dry-run
+# Xem model availability (dry-run)
+python exp2_personalized_accuracy.py --dry-run
 
-# Chạy full grid search
-python hyperparam_search.py
+# Chạy tất cả
+python exp2_personalized_accuracy.py --no-confirm
 
-# Chạy cho 1 method cụ thể
-python hyperparam_search.py --method fed_m3
-python hyperparam_search.py --method fed_dgd
-python hyperparam_search.py --method fedprox
+# Chạy từng dataset
+python exp2_personalized_accuracy.py --dataset cifar10 --no-confirm
+python exp2_personalized_accuracy.py --dataset fmnist --no-confirm
 
-# Bỏ qua xác nhận
-python hyperparam_search.py --no-confirm
-
-# Dùng config khác
-python hyperparam_search.py --config configs/my_grid.json
+# Tùy chỉnh fine-tuning
+python exp2_personalized_accuracy.py --finetune-epochs 10 --finetune-lr 0.005 --no-confirm
 ```
 
-### Output bảng kết quả
-
-```
-================================================================================
-RESULTS FOR FED_M3
-================================================================================
-       beta1 |        beta3 |          lam | Server Acc (Final) | Server Acc (Best) | Mean Local Acc (Final) | ...
----------------------------------------------------------------------------------------------------------------------
-         0.9 |          0.9 |          0.3 |             65.42% |            67.85% |                 72.15% | ...
-         0.9 |          0.9 |          0.5 |             64.18% |            66.92% |                 71.33% | ...
-...
-
-Best params (by Server Best): {'beta1': 0.9, 'beta3': 0.9, 'lam': 0.3}
-  Server:     Final=65.42%  Best=67.85%
-  Local Acc:  Final=72.15%  Best=73.22%
-  Global Acc: Final=58.33%  Best=60.12%
-```
-
-### Giải thích các cột
-
-| Cột | Ý nghĩa |
-|-----|---------|
-| **Server Acc (Final)** | Accuracy của global model trên test set ở round cuối |
-| **Server Acc (Best)** | Accuracy cao nhất của global model qua tất cả rounds |
-| **Mean Local Acc (Final)** | Trung bình accuracy của local model trên local data (round cuối) |
-| **Mean Local Acc (Best)** | Trung bình Local Acc cao nhất qua tất cả rounds |
-| **Mean Global Acc (Final)** | Trung bình accuracy của global model trên local data của clients (round cuối) |
-| **Mean Global Acc (Best)** | Trung bình Global Acc cao nhất qua tất cả rounds |
-
-### Output files
-```
-results/hyperparam_search/
-├── {method}/cifar10_dirichlet_a{alpha}/
-│   └── metrics_*.json      # Metrics cho mỗi combination
-└── summary_*.json          # Tóm tắt với best params cho mỗi method
-```
-
----
-
-## Experiment Matrix (Recommended)
-
-| # | Dataset | Non-IID | Alpha | Command |
-|---|---------|---------|-------|---------|
-| 1 | CIFAR-10 | IID | - | `--non-iid iid` |
-| 2 | CIFAR-10 | Dirichlet | 1.0 | `--alpha 1.0` |
-| 3 | CIFAR-10 | Dirichlet | 0.5 | `--alpha 0.5` |
-| 4 | CIFAR-10 | Dirichlet | 0.1 | `--alpha 0.1` |
-| 5 | CIFAR-10 | Quantity | - | `--non-iid quantity` |
-| 6 | FMNIST | Dirichlet | 0.5 | `--dataset fmnist --alpha 0.5` |
-
-### Script chạy tất cả experiments
+### Bước 2 — Resume nếu bị dừng
 
 ```bash
-#!/bin/bash
-# run_all_experiments.sh
+# Xem status
+python exp2_resume.py --dry-run
 
-# CIFAR-10 experiments
-for alpha in 0.1 0.5 1.0; do
-    python run_comparison.py \
-        --dataset cifar10 \
-        --methods fedavg fed_m3 \
-        --alpha $alpha \
-        --num-rounds 100
-done
+# Chạy tiếp
+python exp2_resume.py --no-confirm
+python exp2_resume.py --dataset fmnist --no-confirm
+```
 
-# IID baseline
-python run_comparison.py \
-    --dataset cifar10 \
-    --methods fedavg fed_m3 \
-    --non-iid iid \
-    --num-rounds 100
+### Bước 3 — Xem kết quả
 
-# Quantity skew
-python run_comparison.py \
-    --dataset cifar10 \
-    --methods fedavg fed_m3 \
-    --non-iid quantity \
-    --num-rounds 100
+```bash
+# In Table 2 (Personalized Accuracy)
+python exp2_report.py
+
+# Lưu CSV
+python exp2_report.py --save-csv
+
+# Chỉ 1 dataset
+python exp2_report.py --dataset cifar10
+```
+
+Output Table 2:
+```
+Dataset   α     FedAvg           FedProx          Fed-M3           Fed-DGD
+               Min(%) Mean(%)   Min(%) Mean(%)   Min(%) Mean(%)   Min(%) Mean(%)
+FMNIST    0.1    –      –         –      –         –      –         –      –
+          0.5    –      –         –      –         –      –         –      –
+          1.0    –      –         –      –         –      –         –      –
+CIFAR-10  0.1    –      –         –      –         –      –         –      –
+          ...
+```
+
+### Output structure
+
+```
+results/exp2_personalized_accuracy/
+├── personalized_results_*.json   # Kết quả chi tiết
+└── table2_personalized_*.csv     # CSV export
 ```
 
 ---
@@ -609,62 +332,20 @@ python run_comparison.py \
 
 ### CUDA out of memory
 ```bash
-# Giảm batch size
-python run_experiment.py --batch-size 16
-
-# Hoặc dùng CPU
-python run_experiment.py --device cpu
-```
-
-### Training quá chậm
-```bash
-# Giảm số rounds và local epochs để test
-python run_experiment.py --num-rounds 10 --local-epochs 1
+python run_experiment.py --batch-size 64
 ```
 
 ### Kết quả không reproducible
 ```bash
-# Đảm bảo dùng cùng seed
-python run_experiment.py --seed 42
-python run_experiment.py --seed 42  # Phải cho kết quả giống nhau
+# Đảm bảo dùng cùng seed (mặc định seed=42)
+python exp1_global_accuracy.py --seed 42
+```
+
+### Kiểm tra code trước khi chạy
+```bash
+python test_isolation.py
 ```
 
 ---
 
-## Files quan trọng
-
-### Scripts chính
-| File | Mô tả |
-|------|-------|
-| `run_experiment.py` | Chạy 1 experiment với 1 method |
-| `run_comparison.py` | So sánh nhiều methods (cùng data split) |
-| `exp1_global_accuracy.py` | Experiment 1: So sánh Global Accuracy |
-| `hyperparam_search.py` | Grid search tìm hyperparameters tốt nhất |
-
-### FL Framework
-| File | Mô tả |
-|------|-------|
-| `fl/client.py` | FL Client |
-| `fl/server.py` | FL Server |
-| `fl/data_split.py` | Non-IID data split |
-| `fl/aggregators.py` | Aggregation functions |
-
-### Models & Optimizers
-| File | Mô tả |
-|------|-------|
-| `models/cnn.py` | CNN models (CNNSmall, CNNMedium) |
-| `optimizers/fed_m3.py` | Fed-M3 optimizer |
-| `optimizers/fed_dgd.py` | Fed-DGD optimizer |
-| `optimizers/fedprox.py` | FedProx optimizer |
-
-### Utils & Configs
-| File | Mô tả |
-|------|-------|
-| `utils/metrics.py` | MetricsTracker |
-| `utils/seed.py` | set_seed() |
-| `configs/exp1_config.json` | Config cho Experiment 1 |
-| `configs/hyperparam_search.json` | Config cho Grid Search |
-
----
-
-*Cập nhật: 2026-04-05*
+*Cập nhật: 2026-05-08*
