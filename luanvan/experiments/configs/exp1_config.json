@@ -1,7 +1,7 @@
 {
   "experiment": {
     "name": "exp1_global_accuracy",
-    "description": "So sanh Global Accuracy giua cac methods voi cac muc non-IID",
+    "description": "So sanh Global Accuracy giua cac methods voi cac muc non-IID, tat ca cac thong so duoc lay cua  best model trong hyparameter search.",
     "version": "1.0"
   },
 

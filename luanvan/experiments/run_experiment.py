@@ -454,7 +454,14 @@ def run_fl_experiment(
 
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    result_dir = Path(save_dir) / method / f"{dataset_name}_{non_iid_type}_a{alpha}"
+
+    # Include num_clients in folder name ONLY if save_dir is exp3 (varying clients)
+    # This avoids breaking exp1/exp2 existing results
+    if "exp3" in str(save_dir).lower():
+        result_dir = Path(save_dir) / method / f"{dataset_name}_{non_iid_type}_a{alpha}_c{num_clients}"
+    else:
+        result_dir = Path(save_dir) / method / f"{dataset_name}_{non_iid_type}_a{alpha}"
+
     result_dir.mkdir(parents=True, exist_ok=True)
 
     metrics_path = result_dir / f"metrics_{timestamp}.json"

@@ -33,7 +33,6 @@ def load_config(config_path: str) -> Dict:
 
 def is_completed(method: str, dataset: str, alpha: float, save_dir: str) -> bool:
     """Kiem tra experiment da chay xong chua bang cach tim metrics file."""
-    pattern = Path(save_dir) / method / f"{dataset}_dirichlet_a{alpha}" / "metrics_*.json"
     files = list(Path(save_dir).glob(f"{method}/{dataset}_dirichlet_a{alpha}/metrics_*.json"))
     return len(files) > 0
 
