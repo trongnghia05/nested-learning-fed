@@ -23,6 +23,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset, random_split
@@ -30,7 +31,7 @@ from torch.utils.data import DataLoader, Subset, random_split
 # Add parent dir to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from models import get_model
+from models import create_model
 from fl.data_split import dirichlet_split, iid_split
 from utils.seed import set_seed
 
@@ -217,7 +218,7 @@ def run_personalized(
         client_datasets = iid_split(train_data, cfg["num_clients"], cfg["seed"])
 
     # Load global model
-    model = get_model(model_type)
+    model = create_model(model_type, num_classes=10)
     checkpoint = torch.load(model_path, map_location="cpu")
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
