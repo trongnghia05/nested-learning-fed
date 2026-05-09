@@ -83,11 +83,88 @@ def get_device(device_str: str) -> torch.device:
 
 
 def find_model_file(method: str, dataset: str, alpha: float) -> Optional[Path]:
+    """
+    Tìm model file có BEST accuracy từ các runs khác nhau.
+
+    Strategy:
+    1. Đọc tất cả metrics_*.json files
+    2. Tìm run có best accuracy cao nhất
+    3. Load model tương ứng với run đó
+    """
     folder = RESULTS_DIR / method / f"{dataset}_dirichlet_a{alpha}"
-    files = list(folder.glob("model_*.pt"))
-    if not files:
+
+    if not folder.exists():
         return None
-    return max(files, key=lambda x: x.stat().st_mtime)
+
+    # Find all metrics files
+    metrics_files = list(folder.glob("metrics_*.json"))
+    if not metrics_files:
+        return None
+
+    print(f"  Found {len(metrics_files)} run(s), comparing accuracies...")
+
+    # Find run with best accuracy
+    best_acc = 0.0
+    best_timestamp = None
+    best_round = 0
+    run_info = []  # Track all runs for display
+
+    for metrics_file in metrics_files:
+        try:
+            with open(metrics_file) as f:
+                metrics_data = json.load(f)
+
+            # Get best accuracy from this run
+            rounds = metrics_data.get('rounds', [])
+            if rounds:
+                # Tìm max accuracy trong tất cả các rounds của run này
+                max_round = max(rounds, key=lambda r: r['server']['test_acc'])
+                run_best_acc = max_round['server']['test_acc']
+                run_best_round = max_round['round']
+
+                timestamp = metrics_file.stem.replace('metrics_', '')
+                run_info.append({
+                    'timestamp': timestamp,
+                    'best_acc': run_best_acc,
+                    'best_round': run_best_round
+                })
+
+                if run_best_acc > best_acc:
+                    best_acc = run_best_acc
+                    best_timestamp = timestamp
+                    best_round = run_best_round
+        except Exception as e:
+            print(f"  Warning: Could not read {metrics_file.name}: {e}")
+            continue
+
+    # Print all runs info
+    if run_info:
+        print(f"  Run accuracies:")
+        for info in sorted(run_info, key=lambda x: x['best_acc'], reverse=True):
+            marker = " <-- SELECTED" if info['timestamp'] == best_timestamp else ""
+            print(f"    {info['timestamp']}: {info['best_acc']*100:.2f}% (round {info['best_round']}){marker}")
+
+    if best_timestamp is None:
+        print(f"  No valid metrics found, using latest model...")
+        # Fallback: use latest model if no metrics found
+        model_files = list(folder.glob("model_*.pt"))
+        if not model_files:
+            return None
+        return max(model_files, key=lambda x: x.stat().st_mtime)
+
+    # Find model with matching timestamp
+    model_file = folder / f"model_{best_timestamp}.pt"
+
+    if not model_file.exists():
+        print(f"  Warning: Model file not found: {model_file.name}")
+        # Fallback: use latest model
+        model_files = list(folder.glob("model_*.pt"))
+        if not model_files:
+            return None
+        return max(model_files, key=lambda x: x.stat().st_mtime)
+
+    print(f"  Loading: {model_file.name} (Best: {best_acc*100:.2f}%)")
+    return model_file
 
 
 def load_dataset(dataset: str, seed: int):
