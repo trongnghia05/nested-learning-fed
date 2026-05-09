@@ -1,0 +1,57 @@
+{
+  "experiment": {
+    "name": "exp3_num_clients_effect",
+    "description": "Effect of the number of clients on global accuracy",
+    "version": "1.0"
+  },
+
+  "methods": ["fedavg", "fedprox", "fed_m3", "fed_dgd"],
+
+  "datasets": ["fmnist", "cifar10"],
+
+  "alphas": [0.1, 0.5],
+
+  "num_clients_list": [10, 20, 30, 50],
+
+  "fl": {
+    "num_rounds": 100,
+    "local_epochs": 5,
+    "batch_size": 512,
+    "lr": 0.01,
+    "non_iid_type": "dirichlet"
+  },
+
+  "model": {
+    "type": "auto"
+  },
+
+  "fed_m3": {
+    "beta1": 0.9,
+    "beta2": 0.999,
+    "beta3": 0.5,
+    "lam": 0.5,
+    "ns_steps": 5,
+    "v_init": 1.0
+  },
+
+  "fed_dgd": {
+    "alpha": 1.0,
+    "decay_strength": 0.05
+  },
+
+  "fedprox": {
+    "mu": 0.01,
+    "comment": "Using mu=0.01 for better performance on non-IID data"
+  },
+
+  "training": {
+    "seed": 42,
+    "device": "auto",
+    "debug": false
+  },
+
+  "output": {
+    "save_dir": "./results/exp3_num_clients",
+    "save_config": true
+  }
+}
